@@ -18,7 +18,7 @@ Ce dépôt contient **uniquement la partie Front-End** du projet.
 ## Cahier des charges
 Le cahier des charges détaillant les fonctionnalités, le périmètre et les exigences du Front-End est disponible ici :
 
- **[Consulter le cahier des charges Front-End](docs/Cahier_des_charges_Frontend.pdf)**
+ **[Consulter le cahier des charges Front-End](docs/Cahier_des_charges_Frontend.md)**
 
 ---
 
