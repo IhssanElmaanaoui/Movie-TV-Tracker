@@ -71,12 +71,3 @@ La landing page est la première page visible lors de l’accès au site, sans a
 
 Respect des règles d’utilisation de l’API TMDb.
 
----
-
-## Installation
-
-```bash
-git clone https://github.com/votre-repo/movie-tv-tracker-frontend.git
-cd movie-tv-tracker-frontend
-npm install
-npm run dev
