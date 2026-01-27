@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import Navbar from './components/Navbar';
 import MovieCarousel from './components/MovieCarousel';
+import StreamingPlatforms from './components/StreamingPlatforms';
+import MovieCategoriesCarousel from './components/MovieCategoriesCarousel';
 
 export default function App() {
   const [movies, setMovies] = useState([]);
@@ -61,6 +63,8 @@ export default function App() {
     <div className="bg-gray-900 min-h-screen">
       <Navbar />
       <MovieCarousel movies={movies} />
+      <StreamingPlatforms />
+      <MovieCategoriesCarousel />
       <div className="px-8 pb-8 pt-12">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 max-w-7xl mx-auto">
           {movies.map((movie, index) => (
