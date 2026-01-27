@@ -24,7 +24,7 @@ const GENRE_MAP = {
   10665: 'Spy',
 };
 
-const TMDB_BEARER_TOKEN = import.meta.env.VITE_TMDB_BEARER_TOKEN || '';
+const TMDB_BEARER_TOKEN = import.meta.env.VITE_TMDB_BEARER_TOKEN || 'eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJmZmJiMWFlYmE5MDc3MGM3YzUyNzI2Njg1NDU1ZTA3MCIsIm5iZiI6MTc1ODc0NDU5OC40NDk5OTk4LCJzdWIiOiI2OGQ0NTAxNjNjN2M1NmQ5MTBlNzIyZTAiLCJzY29wZXMiOlsiYXBpX3JlYWQiXSwidmVyc2lvbiI6MX0.Wyls449PmYczveDSVO_VwR32d9vwjO-InApFO2c2B6k';
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 const IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/w500';
 
@@ -77,6 +77,7 @@ export default function MovieCategoriesCarousel() {
   // Fetch movies for all categories
   useEffect(() => {
     const fetchAllCategories = async () => {
+      console.log('TMDB_BEARER_TOKEN:', TMDB_BEARER_TOKEN);
       try {
         const fetchedCategories = await Promise.all(
           CATEGORIES.map(async (category) => {
