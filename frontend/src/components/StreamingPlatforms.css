@@ -1,0 +1,78 @@
+.logo-carousel-container {
+    width: 100%;
+    position: relative;
+    overflow: hidden;
+}
+
+.logo-carousel-container::before,
+.logo-carousel-container::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 200px;
+    z-index: 10;
+    pointer-events: none;
+}
+
+.logo-carousel-container::before {
+    left: 0;
+    background: linear-gradient(to right, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0) 100%);
+}
+
+.logo-carousel-container::after {
+    right: 0;
+    background: linear-gradient(to left, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0) 100%);
+}
+
+.logo-carousel-track {
+    display: flex;
+    gap: 4rem;
+    animation: scroll-left 30s linear infinite;
+    width: fit-content;
+}
+
+.logo-item {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 1rem;
+}
+
+.logo-image {
+    height: 40px;
+    width: auto;
+    max-width: 120px;
+    object-fit: contain;
+    transition: transform 0.3s ease;
+}
+
+.logo-image.netflix-logo {
+    height: 70px;
+    max-width: 180px;
+}
+
+.logo-image.universal-logo {
+    height: 60px;
+    max-width: 170px;
+}
+
+.logo-item:hover .logo-image {
+    transform: scale(1.1);
+}
+
+@keyframes scroll-left {
+    0% {
+        transform: translateX(0);
+    }
+
+    100% {
+        transform: translateX(-50%);
+    }
+}
+
+/* Pause animation on hover */
+.logo-carousel-container:hover .logo-carousel-track {
+    animation-play-state: paused;
+}

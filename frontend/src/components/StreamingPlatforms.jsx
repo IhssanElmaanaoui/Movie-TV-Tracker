@@ -1,45 +1,74 @@
+import './StreamingPlatforms.css';
+
 export default function StreamingPlatforms() {
   const platforms = [
     {
       name: 'Netflix',
-      logo: '/Netflix-logo.webp',
-    },
-    {
-      name: 'Disney+',
-      logo: '/disney-logo.webp',
-    },
-    {
-      name: 'HBO Max',
-      logo: '/hd-hbo-logo.webp',
-    },
-    {
-      name: 'PIXAR',
-      logo: '/Universal_Pictures_logo.webp',
-    },
-    {
-      name: 'Amazon Prime',
-      logo: '/amazon-prime-video-logo.webp',
+      logo: '/Netflix_logo.png',
     },
     {
       name: 'Apple TV+',
       logo: '/Apple-TV-plus-logo.webp',
     },
+    {
+      name: 'Hulu',
+      logo: '/Hulu-logo.webp',
+    },
+    {
+      name: 'Warner Bros',
+      logo: '/Warner_Bros_logo.png',
+    },
+    {
+      name: 'HBO Max',
+      logo: '/HBO-Max-Logo.png',
+    },
+    {
+      name: 'Universal',
+      logo: '/Universal_logo.png',
+    },
+    {
+      name: 'Disney Plus',
+      logo: '/Disney_Plus_logo.png',
+    },
+    {
+      name: 'Amazon Prime Video',
+      logo: '/Amazon-Prime-Video-Logo.png',
+    },
+    {
+      name: 'Pixar',
+      logo: '/Pixar_logo.png',
+    },
   ];
 
   return (
-    <div className="w-full bg-black border-b border-gray-800 py-6">
-      <div className="max-w-7xl mx-auto px-4">
-        <div className="flex items-center justify-center gap-10 flex-wrap">
-          {platforms.map((platform) => (
+    <div className="w-full bg-black border-b border-gray-800 py-8 overflow-hidden">
+      <div className="logo-carousel-container">
+        <div className="logo-carousel-track">
+          {/* First set of logos */}
+          {platforms.map((platform, index) => (
             <div
-              key={platform.name}
-              className="group cursor-pointer transition-all duration-300"
+              key={`${platform.name}-1-${index}`}
+              className="logo-item"
               title={platform.name}
             >
               <img
                 src={platform.logo}
                 alt={platform.name}
-                className="h-10 w-auto object-contain opacity-75 group-hover:opacity-100 transition-opacity duration-300 filter grayscale group-hover:grayscale-0"
+                className={`logo-image ${platform.name === 'Netflix' || platform.name === 'Warner Bros' || platform.name === 'HBO Max' ? 'netflix-logo' : platform.name === 'Universal' || platform.name === 'Disney Plus' || platform.name === 'Amazon Prime Video' || platform.name === 'Pixar' ? 'universal-logo' : ''}`}
+              />
+            </div>
+          ))}
+          {/* Duplicate set for seamless loop */}
+          {platforms.map((platform, index) => (
+            <div
+              key={`${platform.name}-2-${index}`}
+              className="logo-item"
+              title={platform.name}
+            >
+              <img
+                src={platform.logo}
+                alt={platform.name}
+                className={`logo-image ${platform.name === 'Netflix' || platform.name === 'Warner Bros' || platform.name === 'HBO Max' ? 'netflix-logo' : platform.name === 'Universal' || platform.name === 'Disney Plus' || platform.name === 'Amazon Prime Video' || platform.name === 'Pixar' ? 'universal-logo' : ''}`}
               />
             </div>
           ))}
