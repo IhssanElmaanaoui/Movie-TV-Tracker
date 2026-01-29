@@ -139,6 +139,13 @@ export default function Navbar({ onSignUpClick }) {
             </button>
 
             <button
+              onClick={() => navigate("/series")}
+              className="block text-gray-300 hover:text-white"
+            >
+              Series
+            </button>
+
+            <button
               onClick={() => navigate("/dashboard")}
               className="block text-gray-300 hover:text-white"
             >
