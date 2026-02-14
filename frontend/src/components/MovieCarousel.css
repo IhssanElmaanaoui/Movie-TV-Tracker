@@ -8,7 +8,7 @@ body {
 .carousel-container {
   position: relative;
   width: 100%;
-  height: 564px;
+  height: 100%;
   overflow: hidden;
   z-index: 10;
 }
@@ -50,7 +50,7 @@ body {
   left: 80px;
   transform: translateY(-50%);
   max-width: 450px;
-  z-index: 2;
+  z-index: 100;
   color: white;
 }
 
@@ -150,17 +150,32 @@ body {
   transform: scale(0.98);
 }
 
+.btn-details {
+  background-color: #ffffff;
+  color: #000;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.btn-details:hover {
+  background-color: rgba(255, 255, 255, 0.9);
+  transform: scale(1.05);
+  box-shadow: 0 4px 16px rgba(255, 255, 255, 0.3);
+}
+
+.btn-details:active {
+  transform: scale(0.98);
+}
+
 .btn-info {
-  background-color: rgba(255, 255, 255, 0.25);
-  color: white;
-  border: 1px solid rgba(255, 255, 255, 0.4);
+  background-color: #ffffff;
+  color: #000;
+  border: none;
 }
 
 .btn-info:hover {
-  background-color: rgba(255, 255, 255, 0.4);
-  border-color: rgba(255, 255, 255, 0.6);
+  background-color: rgba(255, 255, 255, 0.9);
   transform: scale(1.05);
-  box-shadow: 0 4px 16px rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 16px rgba(255, 255, 255, 0.3);
 }
 
 .btn-info:active {
@@ -170,20 +185,20 @@ body {
 /* ===== ADD BUTTON & MENU ===== */
 .add-button-container {
   position: relative;
+  z-index: 100000;
 }
 
 .btn-add {
-  background-color: rgba(255, 255, 255, 0.25);
-  color: white;
-  border: 1px solid rgba(255, 255, 255, 0.4);
+  background-color: rgba(109, 40, 217, 0.9);
+  color: #ffffff;
+  border: none;
   padding: 10px 12px;
 }
 
 .btn-add:hover {
-  background-color: rgba(255, 255, 255, 0.4);
-  border-color: rgba(255, 255, 255, 0.6);
+  background-color: rgba(109, 40, 217, 1);
   transform: scale(1.05);
-  box-shadow: 0 4px 16px rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 16px rgba(109, 40, 217, 0.4);
 }
 
 .btn-add:active {
@@ -194,14 +209,14 @@ body {
   position: absolute;
   top: calc(100% + 8px);
   left: 0;
-  background-color: rgba(20, 20, 20, 0.95);
+  background-color: #ffffff;
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: none;
   border-radius: 8px;
   padding: 8px 0;
   min-width: 220px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.8);
-  z-index: 1000;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  z-index: 999999;
   animation: slideDown 0.2s ease;
 }
 
@@ -222,7 +237,7 @@ body {
   padding: 12px 16px;
   background: none;
   border: none;
-  color: white;
+  color: #000;
   text-align: left;
   cursor: pointer;
   font-size: 14px;
@@ -235,11 +250,11 @@ body {
 }
 
 .add-menu-item:hover {
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: rgba(0, 0, 0, 0.05);
 }
 
 .add-menu-item:active {
-  background-color: rgba(255, 255, 255, 0.15);
+  background-color: rgba(0, 0, 0, 0.1);
 }
 
 .menu-icon {
@@ -250,13 +265,13 @@ body {
 
 /* ===== MOBILE MODAL ===== */
 .mobile-modal-overlay {
-  position: fixed;
+  position: fixed !important;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
   backdrop-filter: blur(5px);
-  z-index: 99999;
+  z-index: 999999 !important;
   display: flex;
   align-items: flex-end;
   animation: fadeIn 0.2s ease;
@@ -264,18 +279,15 @@ body {
 
 .mobile-modal {
   width: 100%;
-  background: linear-gradient(to bottom,
-      rgba(26, 26, 26, 0.7) 0%,
-      rgba(26, 26, 26, 0.85) 20%,
-      rgba(26, 26, 26, 0.95) 40%,
-      #1a1a1a 60%,
-      #0d0d0d 100%);
+  background: #ffffff;
   backdrop-filter: blur(20px);
   border-radius: 20px 20px 0 0;
-  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.3);
   animation: slideUp 0.3s ease;
   max-height: 80vh;
   overflow-y: auto;
+  position: relative;
+  z-index: 999999 !important;
 }
 
 @keyframes fadeIn {
@@ -303,14 +315,14 @@ body {
   justify-content: space-between;
   align-items: center;
   padding: 20px 24px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
   background-color: transparent;
 }
 
 .mobile-modal-title {
   font-size: 20px;
   font-weight: 700;
-  color: white;
+  color: #000;
   margin: 0;
 }
 
@@ -318,9 +330,9 @@ body {
   width: 32px;
   height: 32px;
   border: none;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.1);
   border-radius: 50%;
-  color: white;
+  color: #000;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -334,7 +346,7 @@ body {
 }
 
 .mobile-modal-close:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.15);
 }
 
 .mobile-modal-close:active {
@@ -350,7 +362,7 @@ body {
   padding: 18px 24px;
   background: none;
   border: none;
-  color: white;
+  color: #000;
   text-align: left;
   cursor: pointer;
   font-size: 16px;
@@ -360,7 +372,7 @@ body {
   gap: 16px;
   transition: all 0.2s ease;
   font-family: inherit;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .mobile-modal-item:last-child {
@@ -368,7 +380,7 @@ body {
 }
 
 .mobile-modal-item:active {
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: rgba(0, 0, 0, 0.05);
 }
 
 .mobile-modal-icon {
@@ -412,7 +424,7 @@ body {
 /* ===== TABLET RESPONSIVENESS (≤768px) ===== */
 @media (max-width: 768px) {
   .carousel-container {
-    height: 450px;
+    height: 100%;
   }
 
   .carousel-content {
@@ -461,7 +473,7 @@ body {
 /* ===== MOBILE RESPONSIVENESS (≤480px) ===== */
 @media (max-width: 480px) {
   .carousel-container {
-    height: 450px;
+    height: 100%;
   }
 
   .carousel-content {
@@ -494,10 +506,14 @@ body {
   }
 
   .btn {
-    padding: 10px 16px;
+    padding: 7px 16px;
     font-size: 11px;
     justify-content: center;
     flex-shrink: 0;
+  }
+
+  .btn-play {
+    padding: 8px 16px;
   }
 
   .btn-info {
@@ -509,13 +525,13 @@ body {
   }
 
   .btn-add {
-    padding: 10px 12px;
+    padding: 8px 16px;
     min-width: 44px;
   }
 
   .btn-icon {
-    width: 16px;
-    height: 16px;
+    width: 15px;
+    height: 17px;
   }
 
   .add-menu {
@@ -561,6 +577,11 @@ body {
     flex: 0 1 auto;
   }
 
+  .btn-add {
+    padding: 12px 16px;
+    min-width: 44px;
+  }
+
   .add-menu {
     min-width: 220px;
   }
@@ -569,12 +590,14 @@ body {
 /* ===== LARGE SCREEN RESPONSIVENESS (>1500px) ===== */
 @media (min-width: 1501px) {
   .carousel-container {
-    height: 700px;
+    height: 100%;
   }
 
   .carousel-content {
     max-width: 550px;
-    left: 100px;
+    left: 150px;
+    top: 60%;
+    transform: translateY(-50%);
   }
 
   .carousel-title {
@@ -592,20 +615,30 @@ body {
   }
 
   .carousel-description {
-    font-size: 16px;
+    font-size: 15px;
     -webkit-line-clamp: 5;
     line-clamp: 5;
     margin-bottom: 28px;
   }
 
   .btn {
-    padding: 12px 32px;
+    padding: 10px 25px;
+    font-size: 14px;
+  }
+
+  .btn-details {
+    padding: 10px 20px;
     font-size: 14px;
   }
 
   .btn-icon {
     width: 20px;
     height: 20px;
+  }
+
+  .btn-add {
+    padding: 12px 16px;
+    min-width: 44px;
   }
 }
 

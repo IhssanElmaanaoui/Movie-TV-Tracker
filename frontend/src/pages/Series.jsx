@@ -1,354 +1,500 @@
 import { useState, useEffect } from 'react';
-import { Search, Filter, X } from 'lucide-react';
-import SeriesCarousel from '../components/SeriesCarousel';
-import './Series.css';
+import { useNavigate } from "react-router-dom";
+import { RingLoader } from 'react-spinners';
+import { ArrowLeft, ChevronLeft, ChevronRight, SlidersHorizontal, X, Calendar, TrendingUp, Film } from "lucide-react";
+import CustomDropdown from "../components/CustomDropdown";
+
+const TMDB_BEARER_TOKEN = import.meta.env.VITE_TMDB_BEARER_TOKEN || "YOUR_TOKEN_HERE";
+const IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w500";
+const ITEMS_PER_PAGE = 15;
 
 export default function Series() {
+  const navigate = useNavigate();
   const [allSeries, setAllSeries] = useState([]);
-  const [filteredSeries, setFilteredSeries] = useState([]);
+  const [genres, setGenres] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedGenre, setSelectedGenre] = useState('all');
-  const [minRating, setMinRating] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [sortBy, setSortBy] = useState("popularity");
+  const [yearFilter, setYearFilter] = useState("all");
+  const [genreFilter, setGenreFilter] = useState("all");
   const [showFilters, setShowFilters] = useState(false);
 
-  const TMDB_API_KEY = '305ceec31bd18c4544e0297ac07b0c82';
-
-  const GENRES = [
-    { id: 'all', name: 'All Genres' },
-    { id: '10759', name: 'Action & Adventure' },
-    { id: '16', name: 'Animation' },
-    { id: '35', name: 'Comedy' },
-    { id: '80', name: 'Crime' },
-    { id: '18', name: 'Drama' },
-    { id: '10751', name: 'Family' },
-    { id: '9648', name: 'Mystery' },
-    { id: '10765', name: 'Sci-Fi & Fantasy' },
-    { id: '10768', name: 'War & Politics' },
+  // Filter options
+  const sortOptions = [
+    { value: "popularity", label: "Most Popular" },
+    { value: "rating", label: "Highest Rated" },
+    { value: "date-desc", label: "Newest First" },
+    { value: "date-asc", label: "Oldest First" },
+    { value: "title", label: "Title (A-Z)" }
   ];
 
-  // Fetch series data from TMDB
+  const yearOptions = [
+    { value: "all", label: "All Years" },
+    { value: "2024-2025", label: "2024-2025" },
+    { value: "2020-2023", label: "2020-2023" },
+    { value: "2010-2019", label: "2010-2019" },
+    { value: "2000-2009", label: "2000-2009" },
+    { value: "older", label: "Before 2000" }
+  ];
+
+  const genreOptions = [
+    { value: "all", label: "All Genres" },
+    ...genres.map(genre => ({ value: genre.id.toString(), label: genre.name }))
+  ];
+
   useEffect(() => {
-    const fetchAllSeries = async () => {
+    const fetchSeries = async () => {
+      setLoading(true);
       try {
-        setLoading(true);
+        const fetchPromises = [];
 
-        // Fetch multiple categories
-        const trendingRes = await fetch(
-          `https://api.themoviedb.org/3/tv/on_the_air?api_key=${TMDB_API_KEY}&language=en-US&page=1`
-        );
-        const topRatedRes = await fetch(
-          `https://api.themoviedb.org/3/tv/top_rated?api_key=${TMDB_API_KEY}&language=en-US&page=1`
-        );
-        const dramaRes = await fetch(
-          `https://api.themoviedb.org/3/discover/tv?api_key=${TMDB_API_KEY}&with_genres=18&language=en-US&page=1`
-        );
-        const comedyRes = await fetch(
-          `https://api.themoviedb.org/3/discover/tv?api_key=${TMDB_API_KEY}&with_genres=35&language=en-US&page=1`
-        );
-        const scifiRes = await fetch(
-          `https://api.themoviedb.org/3/discover/tv?api_key=${TMDB_API_KEY}&with_genres=10765&language=en-US&page=1`
+        // Fetch genres
+        fetchPromises.push(
+          fetch(
+            `https://api.themoviedb.org/3/genre/tv/list`,
+            {
+              headers: {
+                Authorization: `Bearer ${TMDB_BEARER_TOKEN}`,
+              },
+            }
+          )
         );
 
-        const [trending, topRated, drama, comedy, scifi] = await Promise.all([
-          trendingRes.json(),
-          topRatedRes.json(),
-          dramaRes.json(),
-          comedyRes.json(),
-          scifiRes.json(),
-        ]);
+        // Fetch 5 pages of popular TV series
+        for (let page = 1; page <= 5; page++) {
+          fetchPromises.push(
+            fetch(
+              `https://api.themoviedb.org/3/tv/popular?page=${page}`,
+              {
+                headers: {
+                  Authorization: `Bearer ${TMDB_BEARER_TOKEN}`,
+                },
+              }
+            )
+          );
+        }
 
-        const allSeriesData = [
-          ...new Map(
-            [
-              ...trending.results,
-              ...topRated.results,
-              ...drama.results,
-              ...comedy.results,
-              ...scifi.results,
-            ].map((series) => [series.id, series])
-          ).values(),
-        ];
+        const responses = await Promise.all(fetchPromises);
+        const dataPromises = responses.map(res => res.json());
+        const allData = await Promise.all(dataPromises);
 
-        setAllSeries(allSeriesData);
-        setFilteredSeries(allSeriesData);
-        setError(null);
+        // First response is genres
+        setGenres(allData[0].genres || []);
+
+        // Rest are series pages - deduplicate by series ID
+        const seriesMap = new Map();
+        allData.slice(1).forEach((data) => {
+          (data.results || []).forEach(show => {
+            seriesMap.set(show.id, show);
+          });
+        });
+
+        setAllSeries(Array.from(seriesMap.values()));
       } catch (err) {
-        setError('Failed to fetch series. Please try again later.');
-        console.error(err);
+        console.error("Error fetching series:", err);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchAllSeries();
+    fetchSeries();
   }, []);
 
-  // Filter series based on search, genre, and rating
+  // Fetch more content when filters are applied
   useEffect(() => {
-    let filtered = allSeries;
+    const fetchFilteredSeries = async () => {
+      // Only fetch if at least one filter is applied
+      if (genreFilter === "all" && yearFilter === "all") {
+        return;
+      }
 
-    // Filter by search query
-    if (searchQuery.trim()) {
-      filtered = filtered.filter((series) =>
-        (series.name || series.title)
-          .toLowerCase()
-          .includes(searchQuery.toLowerCase())
-      );
-    }
+      setLoading(true);
+      try {
+        // Build discover API URL with filters
+        const params = new URLSearchParams();
 
-    // Filter by genre (if not 'all')
-    if (selectedGenre !== 'all') {
-      filtered = filtered.filter((series) =>
-        series.genre_ids?.includes(parseInt(selectedGenre))
-      );
-    }
+        if (genreFilter !== "all") {
+          params.append("with_genres", genreFilter);
+        }
 
-    // Filter by rating
-    filtered = filtered.filter((series) => series.vote_average >= minRating);
+        if (yearFilter !== "all") {
+          let minYear, maxYear;
+          if (yearFilter === "2024-2025") {
+            minYear = 2024;
+            maxYear = 2025;
+          } else if (yearFilter === "2020-2023") {
+            minYear = 2020;
+            maxYear = 2023;
+          } else if (yearFilter === "2010-2019") {
+            minYear = 2010;
+            maxYear = 2019;
+          } else if (yearFilter === "2000-2009") {
+            minYear = 2000;
+            maxYear = 2009;
+          } else if (yearFilter === "older") {
+            minYear = 1900;
+            maxYear = 1999;
+          }
 
-    setFilteredSeries(filtered);
-  }, [searchQuery, selectedGenre, minRating, allSeries]);
+          if (minYear && maxYear) {
+            params.append("first_air_date.gte", `${minYear}-01-01`);
+            params.append("first_air_date.lte", `${maxYear}-12-31`);
+          }
+        }
 
-  const handleFavorite = (series) => {
-    console.log('Added to favorites:', series.name);
-  };
+        params.append("sort_by", "popularity.desc");
 
-  const handleWatchlist = (series) => {
-    console.log('Added to watchlist:', series.name);
-  };
+        // Fetch 10 pages of filtered content for more results
+        const fetchPromises = [];
+        for (let page = 1; page <= 10; page++) {
+          params.set("page", page.toString());
+          fetchPromises.push(
+            fetch(
+              `https://api.themoviedb.org/3/discover/tv?${params.toString()}`,
+              {
+                headers: {
+                  Authorization: `Bearer ${TMDB_BEARER_TOKEN}`,
+                },
+              }
+            )
+          );
+        }
 
-  const handleViewDetails = (series) => {
-    console.log('View details:', series.name);
-  };
+        const responses = await Promise.all(fetchPromises);
+        const dataPromises = responses.map(res => res.json());
+        const allData = await Promise.all(dataPromises);
 
-  // Get featured series for hero
-  const featuredSeries = allSeries[0];
+        // Deduplicate series by ID
+        const seriesMap = new Map();
+        allData.forEach((data) => {
+          (data.results || []).forEach(show => {
+            seriesMap.set(show.id, show);
+          });
+        });
 
-  // Organize series by categories
-  const getTrendingSeries = () =>
-    allSeries.slice(0, 10);
-  const getTopRatedSeries = () =>
-    allSeries.slice(10, 20).sort((a, b) => b.vote_average - a.vote_average);
-  const getDramaSeries = () =>
-    allSeries.filter((s) => s.genre_ids?.includes(18)).slice(0, 10);
-  const getComedySeries = () =>
-    allSeries.filter((s) => s.genre_ids?.includes(35)).slice(0, 10);
-  const getSciFiSeries = () =>
-    allSeries.filter((s) => s.genre_ids?.includes(10765)).slice(0, 10);
-  const getSuggestedSeries = () =>
-    allSeries.slice(20, 30);
+        setAllSeries(Array.from(seriesMap.values()));
+        setCurrentPage(1);
+      } catch (err) {
+        console.error("Error fetching filtered series:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFilteredSeries();
+  }, [genreFilter, yearFilter]);
+
+  // Scroll to top when page changes
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [currentPage]);
 
   if (loading) {
     return (
-      <div className="series-page">
-        <div className="series-loading">
-          <p className="loading-text">Loading series...</p>
-        </div>
+      <div
+        className="min-h-screen flex justify-center items-center"
+        style={{ backgroundColor: "#071427" }}
+      >
+        <RingLoader color="#361087" />
       </div>
     );
   }
 
-  if (error) {
-    return (
-      <div className="series-page">
-        <div className="series-error">
-          <p className="error-text">{error}</p>
-        </div>
-      </div>
-    );
-  }
+  // Filter and sort series
+  const filteredSeries = allSeries.filter((series) => {
+    // Filter by genre
+    if (genreFilter !== "all" && series.genre_ids) {
+      if (!series.genre_ids.includes(parseInt(genreFilter))) return false;
+    }
+
+    // Filter by year
+    if (yearFilter !== "all" && series.first_air_date) {
+      const year = new Date(series.first_air_date).getFullYear();
+      const currentYear = new Date().getFullYear();
+
+      if (yearFilter === "2024-2025" && (year < 2024 || year > 2025)) return false;
+      if (yearFilter === "2020-2023" && (year < 2020 || year > 2023)) return false;
+      if (yearFilter === "2010-2019" && (year < 2010 || year > 2019)) return false;
+      if (yearFilter === "2000-2009" && (year < 2000 || year > 2009)) return false;
+      if (yearFilter === "older" && year >= 2000) return false;
+    }
+
+    return true;
+  });
+
+  // Sort series
+  const sortedSeries = [...filteredSeries].sort((a, b) => {
+    switch (sortBy) {
+      case "popularity":
+        return b.popularity - a.popularity;
+      case "rating":
+        return b.vote_average - a.vote_average;
+      case "date-desc":
+        return new Date(b.first_air_date || 0) - new Date(a.first_air_date || 0);
+      case "date-asc":
+        return new Date(a.first_air_date || 0) - new Date(b.first_air_date || 0);
+      case "title":
+        return (a.name || "").localeCompare(b.name || "");
+      default:
+        return 0;
+    }
+  });
+
+  // Calculate pagination
+  const totalPages = Math.ceil(sortedSeries.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = startIndex + ITEMS_PER_PAGE;
+  const displayedSeries = sortedSeries.slice(startIndex, endIndex);
 
   return (
-    <div className="series-page">
-      {/* Hero Section */}
-      {featuredSeries && (
-        <div
-          className="series-hero"
-          style={{
-            backgroundImage: `url(https://image.tmdb.org/t/p/original${
-              featuredSeries.backdrop_path || featuredSeries.poster_path
-            })`,
-          }}
-        >
-          <div className="hero-overlay"></div>
-          <div className="hero-content">
-            <h1 className="hero-title">
-              {featuredSeries.name || featuredSeries.title}
-            </h1>
-            <div className="hero-meta">
-              <span className="hero-rating">
-                ★ {featuredSeries.vote_average?.toFixed(1) || 'N/A'} / 10
-              </span>
-              <span className="hero-year">
-                {featuredSeries.first_air_date?.split('-')[0]}
-              </span>
-            </div>
-            <p className="hero-description">
-              {featuredSeries.overview?.substring(0, 200)}...
-            </p>
-            <div className="hero-buttons">
-              <button
-                className="btn btn-primary"
-                onClick={() => handleFavorite(featuredSeries)}
-              >
-                ♥ Add to Favorites
-              </button>
-              <button
-                className="btn btn-secondary"
-                onClick={() => handleWatchlist(featuredSeries)}
-              >
-                + Add to Watchlist
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Filter Section */}
-      <div className="series-filters-section">
-        <div className="filters-wrapper">
-          <div className="search-filter">
-            <Search size={18} className="search-icon" />
-            <input
-              type="text"
-              placeholder="Search series..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="search-input"
-            />
-          </div>
-
-          <div className="filter-controls">
+    <div
+      className="min-h-screen text-white pt-32 pb-12 animate-fadeIn"
+      style={{ backgroundColor: "#071427" }}
+    >
+      <div className="max-w-7xl mx-auto px-6 md:px-12">
+        {/* Header with Back Button and Filters */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+          <div className="flex items-center gap-4">
             <button
-              className="filter-toggle"
-              onClick={() => setShowFilters(!showFilters)}
+              onClick={() => navigate(-1)}
+              className="bg-white/10 hover:bg-white/20 p-3 rounded-full transition-all duration-200 hover:scale-105"
             >
-              <Filter size={18} />
-              Filters
+              <ArrowLeft size={24} />
             </button>
+            <div>
+              <h1 className="text-4xl font-bold">TV Series</h1>
+            </div>
           </div>
+
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-lg transition-all duration-200 font-medium ${showFilters
+              ? 'bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/30'
+              : 'bg-white/10 hover:bg-white/20'
+              }`}
+          >
+            <SlidersHorizontal size={18} />
+            <span>{showFilters ? 'Hide Filters' : 'Show Filters'}</span>
+            {(sortBy !== "popularity" || yearFilter !== "all" || genreFilter !== "all") && (
+              <span className="bg-blue-400 text-blue-950 text-xs font-bold px-2 py-0.5 rounded-full">•</span>
+            )}
+          </button>
         </div>
 
-        {/* Expanded Filters */}
-        {showFilters && (
-          <div className="filters-expanded">
-            <div className="filter-group">
-              <label className="filter-label">Genre</label>
-              <div className="genre-grid">
-                {GENRES.map((genre) => (
-                  <button
-                    key={genre.id}
-                    className={`genre-option ${
-                      selectedGenre === genre.id ? 'active' : ''
-                    }`}
-                    onClick={() => setSelectedGenre(genre.id)}
-                  >
-                    {genre.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="filter-group">
-              <label className="filter-label">Minimum Rating</label>
-              <div className="rating-slider-container">
-                <input
-                  type="range"
-                  min="0"
-                  max="10"
-                  step="0.5"
-                  value={minRating}
-                  onChange={(e) => setMinRating(parseFloat(e.target.value))}
-                  className="rating-slider"
-                />
-                <span className="rating-value">{minRating.toFixed(1)} / 10</span>
-              </div>
-            </div>
-
+        {/* Active Filters Badge */}
+        {(sortBy !== "popularity" || yearFilter !== "all" || genreFilter !== "all") && (
+          <div className="flex flex-wrap items-center gap-2 mb-6">
+            <span className="text-sm text-gray-400">Active filters:</span>
+            {sortBy !== "popularity" && (
+              <button
+                onClick={() => {
+                  setSortBy("popularity");
+                  setCurrentPage(1);
+                }}
+                className="flex items-center gap-1.5 bg-blue-600/20 text-blue-300 px-3 py-1.5 rounded-full text-sm hover:bg-blue-600/30 transition-colors"
+              >
+                <TrendingUp size={14} />
+                {sortBy === "rating" ? "Rating" : sortBy === "date-desc" ? "Newest" : sortBy === "date-asc" ? "Oldest" : "Title"}
+                <X size={14} />
+              </button>
+            )}
+            {genreFilter !== "all" && (
+              <button
+                onClick={() => {
+                  setGenreFilter("all");
+                  setCurrentPage(1);
+                }}
+                className="flex items-center gap-1.5 bg-green-600/20 text-green-300 px-3 py-1.5 rounded-full text-sm hover:bg-green-600/30 transition-colors"
+              >
+                <Film size={14} />
+                {genres.find(g => g.id === parseInt(genreFilter))?.name || "Genre"}
+                <X size={14} />
+              </button>
+            )}
+            {yearFilter !== "all" && (
+              <button
+                onClick={() => {
+                  setYearFilter("all");
+                  setCurrentPage(1);
+                }}
+                className="flex items-center gap-1.5 bg-purple-600/20 text-purple-300 px-3 py-1.5 rounded-full text-sm hover:bg-purple-600/30 transition-colors"
+              >
+                <Calendar size={14} />
+                {yearFilter === "2024-2025" ? "2024-2025" : yearFilter === "2020-2023" ? "2020-2023" : yearFilter === "2010-2019" ? "2010-2019" : yearFilter === "2000-2009" ? "2000-2009" : "Before 2000"}
+                <X size={14} />
+              </button>
+            )}
             <button
-              className="clear-filters"
               onClick={() => {
-                setSearchQuery('');
-                setSelectedGenre('all');
-                setMinRating(0);
-                setShowFilters(false);
+                setSortBy("popularity");
+                setYearFilter("all");
+                setGenreFilter("all");
+                setCurrentPage(1);
               }}
+              className="text-xs text-gray-400 hover:text-white transition-colors ml-2 underline"
             >
-              Clear All Filters
+              Clear all
             </button>
           </div>
         )}
-      </div>
 
-      {/* Series Display */}
-      <div className="series-content">
-        {filteredSeries.length > 0 ? (
-          <>
-            <SeriesCarousel
-              title="Trending Now"
-              series={getTrendingSeries()}
-              onFavorite={handleFavorite}
-              onWatchlist={handleWatchlist}
-              onViewDetails={handleViewDetails}
-            />
+        {/* Filter Controls */}
+        {showFilters && (
+          <div className="relative z-[100] bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-sm rounded-2xl p-6 mb-8 border border-white/10 shadow-xl animate-in fade-in slide-in-from-top-4 duration-300">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Sort By */}
+              <div className="space-y-3">
+                <label className="flex items-center gap-2 text-sm font-semibold text-gray-200">
+                  <TrendingUp size={16} className="text-blue-400" />
+                  Sort By
+                </label>
+                <CustomDropdown
+                  value={sortBy}
+                  onChange={(value) => {
+                    setSortBy(value);
+                    setCurrentPage(1);
+                    setShowFilters(false);
+                  }}
+                  options={sortOptions}
+                  focusColor="focus:ring-blue-500"
+                />
+              </div>
 
-            <SeriesCarousel
-              title="Top Rated"
-              series={getTopRatedSeries()}
-              onFavorite={handleFavorite}
-              onWatchlist={handleWatchlist}
-              onViewDetails={handleViewDetails}
-            />
+              {/* Genre Filter */}
+              <div className="space-y-3">
+                <label className="flex items-center gap-2 text-sm font-semibold text-gray-200">
+                  <Film size={16} className="text-green-400" />
+                  Genre
+                </label>
+                <CustomDropdown
+                  value={genreFilter}
+                  onChange={(value) => {
+                    setGenreFilter(value);
+                    setCurrentPage(1);
+                    setShowFilters(false);
+                  }}
+                  options={genreOptions}
+                  focusColor="focus:ring-green-500"
+                />
+              </div>
 
-            <SeriesCarousel
-              title="Drama Series"
-              series={getDramaSeries()}
-              onFavorite={handleFavorite}
-              onWatchlist={handleWatchlist}
-              onViewDetails={handleViewDetails}
-            />
+              {/* Year Filter */}
+              <div className="space-y-3">
+                <label className="flex items-center gap-2 text-sm font-semibold text-gray-200">
+                  <Calendar size={16} className="text-purple-400" />
+                  First Air Date
+                </label>
+                <CustomDropdown
+                  value={yearFilter}
+                  onChange={(value) => {
+                    setYearFilter(value);
+                    setCurrentPage(1);
+                    setShowFilters(false);
+                  }}
+                  options={yearOptions}
+                  focusColor="focus:ring-purple-500"
+                />
+              </div>
+            </div>
+          </div>
+        )}
 
-            <SeriesCarousel
-              title="Comedy Series"
-              series={getComedySeries()}
-              onFavorite={handleFavorite}
-              onWatchlist={handleWatchlist}
-              onViewDetails={handleViewDetails}
-            />
-
-            <SeriesCarousel
-              title="Sci-Fi & Fantasy"
-              series={getSciFiSeries()}
-              onFavorite={handleFavorite}
-              onWatchlist={handleWatchlist}
-              onViewDetails={handleViewDetails}
-            />
-
-            <SeriesCarousel
-              title="Suggested for You"
-              series={getSuggestedSeries()}
-              onFavorite={handleFavorite}
-              onWatchlist={handleWatchlist}
-              onViewDetails={handleViewDetails}
-              isSuggested={true}
-            />
-          </>
-        ) : (
-          <div className="series-no-results">
-            <p className="no-results-text">
-              No series found matching your filters.
-            </p>
-            <button
-              className="reset-button"
-              onClick={() => {
-                setSearchQuery('');
-                setSelectedGenre('all');
-                setMinRating(0);
-              }}
+        {/* Series Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+          {displayedSeries.map((series) => (
+            <div
+              key={series.id}
+              onClick={() => navigate(`/tv/${series.id}`)}
+              className="group cursor-pointer"
             >
-              Reset Filters
+              {/* Poster */}
+              <div className="relative overflow-hidden rounded-lg mb-3 aspect-[2/3] bg-slate-800">
+                {series.poster_path ? (
+                  <img
+                    src={`${IMAGE_BASE_URL}${series.poster_path}`}
+                    alt={series.name}
+                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-gray-500">
+                    No Image
+                  </div>
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              </div>
+
+              {/* Title */}
+              <h3 className="text-white font-semibold text-base mb-1 line-clamp-2">
+                {series.name}
+              </h3>
+
+              {/* Release Year and Rating */}
+              <div className="flex items-center justify-between">
+                {series.first_air_date && (
+                  <p className="text-gray-400 text-sm">
+                    {new Date(series.first_air_date).getFullYear()}
+                  </p>
+                )}
+                {series.vote_average > 0 && (
+                  <div className="flex items-center gap-1">
+                    <span className="text-yellow-400 text-sm">★</span>
+                    <span className="text-gray-300 text-sm">
+                      {series.vote_average.toFixed(1)}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-4 mt-12">
+            <button
+              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              className={`p-3 rounded-lg transition-colors ${currentPage === 1
+                ? "bg-gray-700 text-gray-500 cursor-not-allowed"
+                : "bg-blue-600 hover:bg-blue-700 text-white"
+                }`}
+            >
+              <ChevronLeft size={20} />
+            </button>
+
+            <div className="flex items-center gap-2">
+              {/* Sliding window of 3 pages */}
+              {Array.from({ length: Math.min(3, totalPages) }, (_, i) => {
+                // Calculate the start of the window
+                let startPage = Math.max(1, currentPage - 1);
+                // Adjust if we're near the end
+                if (startPage + 2 > totalPages) {
+                  startPage = Math.max(1, totalPages - 2);
+                }
+                return startPage + i;
+              }).map((page) => (
+                <button
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  className={`w-10 h-10 rounded-lg transition-colors ${currentPage === page
+                    ? "bg-blue-600 text-white"
+                    : "bg-white/10 hover:bg-white/20 text-white"
+                    }`}
+                >
+                  {page}
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+              className={`p-3 rounded-lg transition-colors ${currentPage === totalPages
+                ? "bg-gray-700 text-gray-500 cursor-not-allowed"
+                : "bg-blue-600 hover:bg-blue-700 text-white"
+                }`}
+            >
+              <ChevronRight size={20} />
             </button>
           </div>
         )}

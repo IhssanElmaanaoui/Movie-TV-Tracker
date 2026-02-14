@@ -18,7 +18,7 @@ const COLLECTION_IDS = [
     422834, // Avengers
 ];
 
-export default function CollectionCarousel() {
+export default function CollectionCarousel({ onLoadComplete }) {
     const [collections, setCollections] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isMobile, setIsMobile] = useState(window.innerWidth <= 480);
@@ -58,10 +58,12 @@ export default function CollectionCarousel() {
                 console.error("Error fetching collections:", err);
             } finally {
                 setLoading(false);
+                if (onLoadComplete) onLoadComplete();
             }
         };
 
         fetchCollections();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     // ✅ Scroll carousel
@@ -73,12 +75,8 @@ export default function CollectionCarousel() {
         });
     };
 
-    if (loading) {
-        return (
-            <div className="max-w-6xl mx-auto px-6 py-12">
-                <p className="text-white text-lg">Loading Collections...</p>
-            </div>
-        );
+    if (loading || collections.length === 0) {
+        return <div style={{ minHeight: '400px' }}></div>;
     }
 
     return (

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { RingLoader } from "react-spinners";
 import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 
 const TMDB_BEARER_TOKEN = import.meta.env.VITE_TMDB_BEARER_TOKEN || "YOUR_TOKEN_HERE";
@@ -106,14 +107,14 @@ export default function Collections() {
                 className="min-h-screen flex justify-center items-center"
                 style={{ backgroundColor: "#071427" }}
             >
-                <p className="text-white text-lg">Loading Collections...</p>
+                <RingLoader color="#361087" />
             </div>
         );
     }
 
     return (
         <div
-            className="min-h-screen text-white pt-32 pb-12"
+            className="min-h-screen text-white pt-32 pb-12 animate-fadeIn"
             style={{ backgroundColor: "#071427" }}
         >
             <div className="max-w-7xl mx-auto px-6 md:px-12">

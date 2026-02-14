@@ -1,8 +1,10 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Heart, Clock, Eye } from 'lucide-react';
 import './SeriesCard.css';
 
 export default function SeriesCard({ series, onFavorite, onWatchlist, onViewDetails }) {
+  const navigate = useNavigate();
   const [isHovered, setIsHovered] = useState(false);
   const [isFavorited, setIsFavorited] = useState(false);
   const [isWatchlisted, setIsWatchlisted] = useState(false);
@@ -21,7 +23,17 @@ export default function SeriesCard({ series, onFavorite, onWatchlist, onViewDeta
 
   const handleViewDetails = (e) => {
     e.stopPropagation();
-    onViewDetails?.(series);
+    if (onViewDetails) {
+      onViewDetails(series);
+    } else {
+      // Default navigation to detail page
+      navigate(`/tv/${series.id}`);
+    }
+  };
+
+  const handleCardClick = () => {
+    // Navigate to detail page when card is clicked
+    navigate(`/tv/${series.id}`);
   };
 
   const posterPath = series.poster_path
@@ -33,6 +45,7 @@ export default function SeriesCard({ series, onFavorite, onWatchlist, onViewDeta
       className="series-card"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      onClick={handleCardClick}
     >
       {/* Poster Image */}
       <div className="series-card-image-container">
@@ -41,7 +54,7 @@ export default function SeriesCard({ series, onFavorite, onWatchlist, onViewDeta
           alt={series.name || series.title}
           className="series-card-image"
         />
-        
+
         {/* Rating Badge */}
         <div className="series-rating-badge">
           ★ {series.vote_average?.toFixed(1) || 'N/A'}

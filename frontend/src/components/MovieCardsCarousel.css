@@ -1,0 +1,150 @@
+.movie-cards-carousel-section {
+    margin-bottom: 40px;
+}
+
+.movie-cards-carousel-header {
+    margin-bottom: 20px;
+}
+
+.movie-cards-carousel-title-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.movie-cards-carousel-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: white;
+    margin: 0;
+}
+
+.suggested-badge {
+    background: linear-gradient(45deg, #6d28d9, #8b5cf6);
+    color: white;
+    padding: 4px 12px;
+    border-radius: 16px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.movie-cards-carousel-container {
+    position: relative;
+}
+
+.carousel-nav-button {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(0, 0, 0, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    cursor: pointer;
+    z-index: 10;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+}
+
+.carousel-nav-button:hover {
+    background: rgba(0, 0, 0, 0.9);
+    border-color: rgba(255, 255, 255, 0.4);
+    transform: translateY(-50%) scale(1.1);
+}
+
+.carousel-nav-button.left {
+    left: -24px;
+}
+
+.carousel-nav-button.right {
+    right: -24px;
+}
+
+.movie-cards-carousel-scroll {
+    display: flex;
+    gap: 16px;
+    overflow-x: auto;
+    scroll-behavior: smooth;
+    padding: 8px 0;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.movie-cards-carousel-scroll::-webkit-scrollbar {
+    display: none;
+}
+
+.movie-cards-carousel-item {
+    flex: 0 0 auto;
+    width: 200px;
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+    .carousel-nav-button {
+        width: 40px;
+        height: 40px;
+    }
+
+    .carousel-nav-button.left {
+        left: -20px;
+    }
+
+    .carousel-nav-button.right {
+        right: -20px;
+    }
+
+    .movie-cards-carousel-item {
+        width: 180px;
+    }
+}
+
+@media (max-width: 768px) {
+    .carousel-nav-button {
+        display: none;
+    }
+
+    .movie-cards-carousel-scroll {
+        gap: 12px;
+        padding-left: 4px;
+        padding-right: 4px;
+    }
+
+    .movie-cards-carousel-item {
+        width: 160px;
+    }
+
+    .movie-cards-carousel-title {
+        font-size: 1.25rem;
+    }
+
+    .suggested-badge {
+        font-size: 0.7rem;
+        padding: 3px 10px;
+    }
+}
+
+@media (max-width: 480px) {
+    .movie-cards-carousel-item {
+        width: 140px;
+    }
+
+    .movie-cards-carousel-scroll {
+        gap: 10px;
+    }
+
+    .movie-cards-carousel-title {
+        font-size: 1.1rem;
+    }
+
+    .movie-cards-carousel-section {
+        margin-bottom: 32px;
+    }
+}

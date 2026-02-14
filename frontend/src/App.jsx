@@ -10,6 +10,8 @@ import Collections from "./pages/Collections";
 import CollectionDetail from "./pages/CollectionDetail";
 import GenrePage from "./pages/GenrePage";
 import Movies from "./pages/Movies";
+import MovieDetail from "./pages/MovieDetail";
+import SeriesDetail from "./pages/SeriesDetail";
 
 
 export default function App() {
@@ -28,7 +30,8 @@ export default function App() {
         <Route path="/collection/:id" element={<CollectionDetail />} />
         <Route path="/genre/:genre" element={<GenrePage />} />
         <Route path="/movies" element={<Movies />} />
-
+        <Route path="/movie/:id" element={<MovieDetail />} />
+        <Route path="/tv/:id" element={<SeriesDetail />} />
       </Routes>
 
     </Router>

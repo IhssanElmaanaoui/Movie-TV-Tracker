@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const GENRE_MAP = {
   28: "Action",
@@ -41,7 +42,8 @@ const CATEGORIES = [
   },
 ];
 
-export default function MovieCategoriesCarousel() {
+export default function MovieCategoriesCarousel({ onLoadComplete }) {
+  const navigate = useNavigate();
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 480);
@@ -50,6 +52,13 @@ export default function MovieCategoriesCarousel() {
   // ✅ Get genre name
   const getGenre = (ids) =>
     ids?.length > 0 ? GENRE_MAP[ids[0]] || "Movie" : "Movie";
+
+  // ✅ Handle card click navigation
+  const handleCardClick = (movie, categoryType) => {
+    const isTV = categoryType === "tv" || movie.name; // TV shows have 'name' instead of 'title'
+    const route = isTV ? `/tv/${movie.id}` : `/movie/${movie.id}`;
+    navigate(route);
+  };
 
   // ✅ Resize
   useEffect(() => {
@@ -99,10 +108,12 @@ export default function MovieCategoriesCarousel() {
         console.error(err);
       } finally {
         setLoading(false);
+        if (onLoadComplete) onLoadComplete();
       }
     };
 
     fetchAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ✅ Scroll arrows
@@ -116,15 +127,8 @@ export default function MovieCategoriesCarousel() {
     });
   };
 
-  if (loading) {
-    return (
-      <div
-        className="min-h-screen flex justify-center items-center"
-        style={{ backgroundColor: "#071427" }}
-      >
-        <p className="text-white text-lg">Loading...</p>
-      </div>
-    );
+  if (loading || categories.length === 0) {
+    return <div style={{ minHeight: '400px' }}></div>;
   }
 
   return (
@@ -187,7 +191,8 @@ export default function MovieCategoriesCarousel() {
                   /* ✅ TOP10 STYLE */
                   <div
                     key={movie.id}
-                    className="flex items-center flex-shrink-0"
+                    onClick={() => handleCardClick(movie, category.type)}
+                    className="flex items-center flex-shrink-0 cursor-pointer group"
                     style={{
                       width: isMobile ? "240px" : "320px",
                     }}
@@ -200,7 +205,7 @@ export default function MovieCategoriesCarousel() {
                       <img
                         src={`${IMAGE_BASE_URL}${movie.poster_path}`}
                         alt={movie.title}
-                        className="w-full h-full object-cover transition-transform duration-300 hover:scale-110 cursor-pointer"
+                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
                       />
                     </div>
 
@@ -217,7 +222,8 @@ export default function MovieCategoriesCarousel() {
                   /* ✅ NORMAL STYLE */
                   <div
                     key={movie.id}
-                    className="relative flex-shrink-0"
+                    onClick={() => handleCardClick(movie, category.type)}
+                    className="relative flex-shrink-0 cursor-pointer group"
                     style={{
                       width: isMobile ? "180px" : "200px",
                     }}
@@ -226,7 +232,7 @@ export default function MovieCategoriesCarousel() {
                       <img
                         src={`${IMAGE_BASE_URL}${movie.poster_path}`}
                         alt={movie.title}
-                        className="w-full h-full object-cover transition-transform duration-300 hover:scale-110 cursor-pointer"
+                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
                       />
                     </div>
 
