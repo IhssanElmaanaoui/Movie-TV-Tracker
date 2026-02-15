@@ -86,17 +86,7 @@ export default function SignUp({ onClose }) {
     <div className="signup-container">
       <div className="signup-wrapper">
         <div className="signup-card">
-          <div className="signup-header">
-            <button
-              type="button"
-              onClick={() => navigate("/")}
-              className="go-back-button"
-              aria-label="Go back to home page"
-            >
-              ← Go Back
-            </button>
-          </div>
-
+          {/* title section */}
           <h1 className="signup-title">Projection</h1>
           <p className="signup-subtitle">Create your account</p>
 

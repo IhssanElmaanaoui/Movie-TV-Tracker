@@ -3,14 +3,44 @@
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background-color: #071427;
+  background: #0a0e27;
   padding: 1rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.login-container::before {
+  content: "";
+  position: absolute;
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, rgba(0, 200, 255, 0.3) 0%, transparent 70%);
+  border-radius: 50%;
+  top: -100px;
+  left: -100px;
+  animation: gradient-animation-1 8s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.login-container::after {
+  content: "";
+  position: absolute;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.25) 0%, transparent 70%);
+  border-radius: 50%;
+  bottom: -150px;
+  right: -150px;
+  animation: gradient-animation-2 10s ease-in-out infinite;
+  pointer-events: none;
 }
 
 .login-wrapper {
   width: 100%;
   max-width: 420px;
   animation: slideUp 0.4s ease-out;
+  position: relative;
+  z-index: 10;
 }
 
 @keyframes slideUp {
@@ -21,6 +51,77 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes gradient-animation-1 {
+  0% {
+    top: -100px;
+    left: -100px;
+    opacity: 0.5;
+  }
+  25% {
+    top: -50px;
+    left: 50px;
+    opacity: 0.6;
+  }
+  50% {
+    top: 100px;
+    left: 150px;
+    opacity: 0.7;
+  }
+  75% {
+    top: 50px;
+    left: 0px;
+    opacity: 0.6;
+  }
+  100% {
+    top: -100px;
+    left: -100px;
+    opacity: 0.5;
+  }
+}
+
+@keyframes gradient-animation-2 {
+  0% {
+    bottom: -150px;
+    right: -150px;
+    opacity: 0.4;
+  }
+  25% {
+    bottom: -100px;
+    right: -50px;
+    opacity: 0.5;
+  }
+  50% {
+    bottom: 50px;
+    right: 50px;
+    opacity: 0.6;
+  }
+  75% {
+    bottom: -50px;
+    right: -100px;
+    opacity: 0.5;
+  }
+  100% {
+    bottom: -150px;
+    right: -150px;
+    opacity: 0.4;
+  }
+}
+
+@keyframes gradient-animation-3 {
+  0% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.3;
+  }
+  50% {
+    transform: translate(100px, 100px) scale(1.2);
+    opacity: 0.5;
+  }
+  100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.3;
   }
 }
 
@@ -123,6 +224,15 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+.go-back-bottom {
+  position: absolute;
+  bottom: 2rem;
+  left: 0;
+  width: 100%;
+  text-align: center;
+  /* remove margin-top since it's positioned at bottom */
 }
 
 .go-back-button:hover {
