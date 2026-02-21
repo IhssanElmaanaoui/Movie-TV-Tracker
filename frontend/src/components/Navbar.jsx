@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, UserCircle, Menu, X, Home, Film, Tv, Clock, BookmarkCheck } from "lucide-react";
 import projectionLogo from "../../../logos/projection.png";
+import { userStorage } from "../services/authService";
 
 export default function Navbar({ onSignUpClick }) {
   const navigate = useNavigate();
@@ -293,15 +294,22 @@ export default function Navbar({ onSignUpClick }) {
 
               {/* Profile */}
               <button
-                onClick={() => setProfileOpen(!profileOpen)}
+                onClick={() => {
+                  if (userStorage.isAuthenticated()) {
+                    navigate("/profile");
+                    setProfileOpen(false);
+                  } else {
+                    setProfileOpen(!profileOpen);
+                  }
+                }}
                 className="w-10 h-10 flex items-center justify-center
               rounded-full border border-gray-500/50 hover:border-white mb-6"
               >
                 <UserCircle className="text-gray-300" size={28} />
               </button>
 
-              {/* Profile Dropdown */}
-              {profileOpen && (
+              {/* Profile Dropdown - Only show if not authenticated */}
+              {profileOpen && !userStorage.isAuthenticated() && (
                 <div
                   className="absolute left-1/2 -translate-x-1/2 top-14 w-44
                 bg-slate-900/90 backdrop-blur-md

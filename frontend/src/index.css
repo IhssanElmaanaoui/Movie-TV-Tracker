@@ -2,6 +2,18 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer components {
+
+    /* Detail page reusable labels (Letterboxd-inspired) */
+    .section-label {
+        @apply text-[11px] font-bold uppercase tracking-widest text-gray-500 mb-3;
+    }
+
+    .detail-label {
+        @apply text-[10px] uppercase tracking-wide text-gray-500 mb-0.5 block;
+    }
+}
+
 @layer base {
     * {
         margin: 0;
@@ -59,6 +71,19 @@
 
     .animate-fadeIn {
         animation: fadeIn 0.8s ease-out;
+    }
+
+    /* Hide scrollbar for mobile horizontal scrolling */
+    .scrollbar-hide {
+        -ms-overflow-style: none;
+        /* IE and Edge */
+        scrollbar-width: none;
+        /* Firefox */
+    }
+
+    .scrollbar-hide::-webkit-scrollbar {
+        display: none;
+        /* Chrome, Safari and Opera */
     }
 
     /* Custom scrollbar styles */
