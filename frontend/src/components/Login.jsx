@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { authService, userStorage } from '../services/authService';
 import './Login.css';
 
 export default function Login() {
@@ -7,11 +8,12 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   // Check if form fields are filled
   const isFormValid = email.trim() && password.trim();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
@@ -33,12 +35,33 @@ export default function Login() {
       return;
     }
 
-    // Handle login (placeholder for API call)
-    console.log('Login attempt:', { email, password });
-    // TODO: Add API call to authenticate user
-    
-    // Navigate back to dashboard
-    navigate('/');
+    // Handle login with API call
+    setIsLoading(true);
+    try {
+      const result = await authService.login({ email, password });
+
+      if (result.success) {
+        // Store user data in localStorage
+        userStorage.setUser(result.data);
+        console.log('Login successful:', result.data);
+
+        // Navigate back to dashboard
+        navigate('/');
+      } else {
+        // Handle error from API
+        if (result.error.validationErrors) {
+          const firstError = Object.values(result.error.validationErrors)[0];
+          setError(firstError);
+        } else {
+          setError(result.error.message || 'Login failed. Please try again.');
+        }
+      }
+    } catch (err) {
+      console.error('Login error:', err);
+      setError('An unexpected error occurred. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -83,9 +106,9 @@ export default function Login() {
             <button
               type="submit"
               className="login-button"
-              disabled={!isFormValid}
+              disabled={!isFormValid || isLoading}
             >
-              Login
+              {isLoading ? 'Logging in...' : 'Login'}
             </button>
           </form>
 

@@ -1,34 +1,99 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { authService, userStorage } from "../services/authService";
 import "./SignUp.css";
 
 export default function SignUp({ onClose }) {
   const navigate = useNavigate();
 
-  const [fullName, setFullName] = useState("");
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [usernameError, setUsernameError] = useState("");
+  const [isCheckingUsername, setIsCheckingUsername] = useState(false);
+  const [usernameAvailable, setUsernameAvailable] = useState(null);
+
+  // Check username availability when user types
+  useEffect(() => {
+    const checkUsername = async () => {
+      if (username.trim().length < 3) {
+        setUsernameAvailable(null);
+        setUsernameError("");
+        return;
+      }
+
+      if (username.trim().length > 50) {
+        setUsernameError("Username must not exceed 50 characters");
+        setUsernameAvailable(false);
+        return;
+      }
+
+      setIsCheckingUsername(true);
+      try {
+        const isAvailable = await authService.checkUsernameAvailability(username.trim());
+        setUsernameAvailable(isAvailable);
+
+        // Explicitly check: true = available, false = taken, null = error
+        if (isAvailable === false) {
+          setUsernameError("Username is already taken");
+        } else if (isAvailable === true) {
+          setUsernameError("");
+        } else {
+          // null case - API error, don't show "taken" message
+          setUsernameError("Unable to verify username. Please try again.");
+        }
+      } catch (err) {
+        console.error("Error checking username:", err);
+        setUsernameError("Unable to verify username. Please try again.");
+        setUsernameAvailable(null);
+      } finally {
+        setIsCheckingUsername(false);
+      }
+    };
+
+    const debounceTimer = setTimeout(checkUsername, 500);
+    return () => clearTimeout(debounceTimer);
+  }, [username]);
 
   // Check if form fields are filled
   const isFormValid =
-    fullName.trim() &&
+    username.trim() &&
+    username.trim().length >= 3 &&
+    username.trim().length <= 50 &&
+    usernameAvailable === true &&
     email.trim() &&
     password.trim() &&
     confirmPassword.trim() &&
     password === confirmPassword &&
     password.length >= 6;
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setSuccess("");
 
-    // Full Name Validation
-    if (!fullName.trim()) {
-      setError("Full name is required");
+    // Username Validation
+    if (!username.trim()) {
+      setError("Username is required");
+      return;
+    }
+
+    if (username.trim().length < 3) {
+      setError("Username must be at least 3 characters");
+      return;
+    }
+
+    if (username.trim().length > 50) {
+      setError("Username must not exceed 50 characters");
+      return;
+    }
+
+    if (usernameAvailable !== true) {
+      setError("Please choose an available username");
       return;
     }
 
@@ -66,20 +131,48 @@ export default function SignUp({ onClose }) {
       return;
     }
 
-    // Signup Success (Placeholder)
-    console.log("Sign up attempt:", { fullName, email, password });
-    setSuccess("Account created successfully!");
+    // Handle signup with API call
+    setIsLoading(true);
+    try {
+      const result = await authService.signup({
+        username: username.trim(),
+        email,
+        password,
+      });
 
-    // Reset Form
-    setFullName("");
-    setEmail("");
-    setPassword("");
-    setConfirmPassword("");
+      if (result.success) {
+        // Store user data in localStorage
+        userStorage.setUser(result.data);
+        setSuccess("Account created successfully!");
+        console.log("Signup successful:", result.data);
 
-    // Navigate after 1 second
-    setTimeout(() => {
-      navigate("/");
-    }, 1000);
+        // Reset Form
+        setUsername("");
+        setEmail("");
+        setPassword("");
+        setConfirmPassword("");
+        setUsernameAvailable(null);
+        setUsernameError("");
+
+        // Navigate after 1 second
+        setTimeout(() => {
+          navigate("/");
+        }, 1000);
+      } else {
+        // Handle error from API
+        if (result.error.validationErrors) {
+          const firstError = Object.values(result.error.validationErrors)[0];
+          setError(firstError);
+        } else {
+          setError(result.error.message || "Signup failed. Please try again.");
+        }
+      }
+    } catch (err) {
+      console.error("Signup error:", err);
+      setError("An unexpected error occurred. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -96,17 +189,33 @@ export default function SignUp({ onClose }) {
 
           <form onSubmit={handleSubmit} className="signup-form">
             <div className="form-group">
-              <label htmlFor="fullName" className="form-label">
-                Full Name
+              <label htmlFor="username" className="form-label">
+                Username
               </label>
               <input
-                id="fullName"
+                id="username"
                 type="text"
-                className="form-input"
-                placeholder="Enter your full name"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
+                className={`form-input ${username.trim().length >= 3
+                  ? usernameAvailable === true
+                    ? 'input-success'
+                    : usernameAvailable === false
+                      ? 'input-error'
+                      : ''
+                  : ''
+                  }`}
+                placeholder="Enter your username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
               />
+              {isCheckingUsername && username.trim().length >= 3 && (
+                <div className="input-status checking">Checking availability...</div>
+              )}
+              {!isCheckingUsername && username.trim().length >= 3 && usernameAvailable === true && (
+                <div className="input-status available">✓ Username is available</div>
+              )}
+              {!isCheckingUsername && usernameAvailable === false && usernameError && (
+                <div className="input-status taken">✗ {usernameError}</div>
+              )}
             </div>
 
             <div className="form-group">
@@ -154,9 +263,9 @@ export default function SignUp({ onClose }) {
             <button
               type="submit"
               className="signup-button"
-              disabled={!isFormValid}
+              disabled={!isFormValid || isLoading}
             >
-              Create Account
+              {isLoading ? 'Creating Account...' : 'Create Account'}
             </button>
           </form>
 

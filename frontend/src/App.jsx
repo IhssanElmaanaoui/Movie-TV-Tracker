@@ -12,6 +12,7 @@ import GenrePage from "./pages/GenrePage";
 import Movies from "./pages/Movies";
 import MovieDetail from "./pages/MovieDetail";
 import SeriesDetail from "./pages/SeriesDetail";
+import Profile from "./pages/Profile";
 
 
 export default function App() {
@@ -32,6 +33,7 @@ export default function App() {
         <Route path="/movies" element={<Movies />} />
         <Route path="/movie/:id" element={<MovieDetail />} />
         <Route path="/tv/:id" element={<SeriesDetail />} />
+        <Route path="/profile" element={<Profile />} />
       </Routes>
 
     </Router>
