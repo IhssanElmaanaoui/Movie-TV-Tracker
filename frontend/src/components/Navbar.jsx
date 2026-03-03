@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, UserCircle, Menu, X, Home, Film, Tv, Clock, BookmarkCheck } from "lucide-react";
+import { Search, UserCircle, Menu, X, Home, Film, Tv, Clock, BookmarkCheck, MessageCircle } from "lucide-react";
 import projectionLogo from "../../../logos/projection.png";
 import { userStorage } from "../services/authService";
+import chatService from "../services/chatService";
 
 export default function Navbar({ onSignUpClick }) {
   const navigate = useNavigate();
@@ -18,6 +19,7 @@ export default function Navbar({ onSignUpClick }) {
   const [lastScrollY, setLastScrollY] = useState(0);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showMobileSearch, setShowMobileSearch] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const profileRef = useRef(null);
   const searchRef = useRef(null);
@@ -79,6 +81,26 @@ export default function Navbar({ onSignUpClick }) {
     };
   }, [profileOpen, showSuggestions, showMobileMenu]);
 
+  // Fetch unread message count
+  useEffect(() => {
+    const fetchUnreadCount = async () => {
+      if (userStorage.isAuthenticated()) {
+        const result = await chatService.getUnreadCount();
+        if (result.success) {
+          setUnreadCount(result.data);
+        }
+      }
+    };
+
+    // Fetch immediately
+    fetchUnreadCount();
+
+    // Poll every 10 seconds
+    const interval = setInterval(fetchUnreadCount, 10000);
+
+    return () => clearInterval(interval);
+  }, []);
+
   // Fetch suggestions when user types 3+ characters
   useEffect(() => {
     const fetchSuggestions = async () => {
@@ -91,6 +113,7 @@ export default function Navbar({ onSignUpClick }) {
       setLoadingSuggestions(true);
 
       try {
+        // Fetch movies and TV shows in parallel
         const [moviesResponse, tvResponse] = await Promise.all([
           fetch(
             `https://api.themoviedb.org/3/search/movie?query=${search}&page=1`,
@@ -292,6 +315,25 @@ export default function Navbar({ onSignUpClick }) {
             {/* ✅ Right Icons */}
             <div className="flex items-center gap-4 relative" ref={profileRef}>
 
+              {/* Messages Icon - Only show if authenticated */}
+              {userStorage.isAuthenticated() && (
+                <div className="relative">
+                  <button
+                    onClick={() => navigate("/chat")}
+                    className="hidden md:flex w-10 h-10 items-center justify-center
+                    rounded-full border border-gray-500/50 hover:border-white mb-6 transition-colors"
+                    title="Messages"
+                  >
+                    <MessageCircle className="text-gray-300" size={24} />
+                  </button>
+                  {unreadCount > 0 && (
+                    <span className="hidden md:flex absolute -top-1 -right-1 bg-red-600 text-white text-xs font-bold rounded-full w-5 h-5 items-center justify-center">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
+                </div>
+              )}
+
               {/* Profile */}
               <button
                 onClick={() => {
@@ -438,6 +480,24 @@ export default function Navbar({ onSignUpClick }) {
             <Search size={24} />
             <span className="text-xs font-medium">Search</span>
           </button>
+
+          {/* Messages Button - Only show if authenticated */}
+          {userStorage.isAuthenticated() && (
+            <div className="relative">
+              <button
+                onClick={() => navigate("/chat")}
+                className="flex flex-col items-center gap-1 text-gray-300 hover:text-white transition"
+              >
+                <MessageCircle size={24} />
+                <span className="text-xs font-medium">Chat</span>
+              </button>
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-2 bg-red-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
+            </div>
+          )}
 
           {/* Menu Button with Popup */}
           <div className="relative" ref={mobileMenuRef}>
