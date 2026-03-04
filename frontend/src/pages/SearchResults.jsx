@@ -129,7 +129,7 @@ export default function SearchResults() {
                   <div
                     key={`${item.media_type}-${item.id}`}
                     onClick={() => navigate(item.media_type === 'movie' ? `/movie/${item.id}` : `/tv/${item.id}`)}
-                    className="flex gap-5 border-b border-gray-700/40 pb-6 cursor-pointer hover:bg-gray-800/30 p-4 rounded-lg transition-colors"
+                    className="flex gap-5 border-b border-gray-700/40 pb-6 cursor-pointer hover:bg-gray-900/30 p-4 rounded-lg transition-colors"
                   >
                     {/* Poster */}
                     <div className="w-[90px] flex-shrink-0">
@@ -142,7 +142,7 @@ export default function SearchResults() {
                           onError={() => handleImageLoad(item.id)}
                         />
                       ) : (
-                        <div className="w-[90px] h-[130px] bg-gray-800 flex items-center justify-center text-gray-500 text-sm rounded-md">
+                        <div className="w-[90px] h-[130px] bg-gray-900 flex items-center justify-center text-gray-500 text-sm rounded-md">
                           No Image
                         </div>
                       )}
@@ -151,7 +151,7 @@ export default function SearchResults() {
                     {/* Info */}
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className={`text-xs px-2 py-0.5 rounded ${item.media_type === 'movie' ? 'bg-blue-600/20 text-blue-400' : 'bg-purple-600/20 text-purple-400'}`}>
+                        <span className={`text-xs px-2 py-0.5 rounded ${item.media_type === 'movie' ? 'bg-purple-600/20 text-purple-600' : 'bg-purple-600/20 text-purple-600'}`}>
                           {mediaTypeLabel}
                         </span>
                       </div>

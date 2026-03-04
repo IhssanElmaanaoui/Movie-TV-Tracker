@@ -15,6 +15,8 @@ import SeriesDetail from "./pages/SeriesDetail";
 import Profile from "./pages/Profile";
 import Chat from "./pages/Chat";
 import UserProfile from "./pages/UserProfile";
+import Community from "./pages/Community";
+import TopicDetail from "./pages/TopicDetail";
 
 
 export default function App() {
@@ -38,6 +40,8 @@ export default function App() {
         <Route path="/profile" element={<Profile />} />
         <Route path="/user/:userId" element={<UserProfile />} />
         <Route path="/chat" element={<Chat />} />
+        <Route path="/community" element={<Community />} />
+        <Route path="/community/topic/:topicId" element={<TopicDetail />} />
       </Routes>
 
     </Router>

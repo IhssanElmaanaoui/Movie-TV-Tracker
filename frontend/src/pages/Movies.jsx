@@ -269,7 +269,7 @@ export default function Movies() {
           <button
             onClick={() => setShowFilters(!showFilters)}
             className={`flex items-center gap-2 px-5 py-2.5 rounded-lg transition-all duration-200 font-medium ${showFilters
-              ? 'bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/30'
+              ? 'bg-purple-600 hover:bg-purple-600/90 shadow-lg shadow-blue-500/30'
               : 'bg-white/10 hover:bg-white/20'
               }`}
           >
@@ -291,7 +291,7 @@ export default function Movies() {
                   setSortBy("popularity");
                   setCurrentPage(1);
                 }}
-                className="flex items-center gap-1.5 bg-blue-600/20 text-blue-300 px-3 py-1.5 rounded-full text-sm hover:bg-blue-600/30 transition-colors"
+                className="flex items-center gap-1.5 bg-purple-600/20 text-purple-600 px-3 py-1.5 rounded-full text-sm hover:bg-purple-600/30 transition-colors"
               >
                 <TrendingUp size={14} />
                 {sortBy === "rating" ? "Rating" : sortBy === "date-desc" ? "Newest" : sortBy === "date-asc" ? "Oldest" : "Title"}
@@ -317,7 +317,7 @@ export default function Movies() {
                   setYearFilter("all");
                   setCurrentPage(1);
                 }}
-                className="flex items-center gap-1.5 bg-purple-600/20 text-purple-300 px-3 py-1.5 rounded-full text-sm hover:bg-purple-600/30 transition-colors"
+                className="flex items-center gap-1.5 bg-purple-600/20 text-purple-600 px-3 py-1.5 rounded-full text-sm hover:bg-purple-600/30 transition-colors"
               >
                 <Calendar size={14} />
                 {yearFilter === "2024-2025" ? "2024-2025" : yearFilter === "2020-2023" ? "2020-2023" : yearFilter === "2010-2019" ? "2010-2019" : yearFilter === "2000-2009" ? "2000-2009" : "Before 2000"}
@@ -345,7 +345,7 @@ export default function Movies() {
               {/* Sort By */}
               <div className="space-y-3">
                 <label className="flex items-center gap-2 text-sm font-semibold text-gray-200">
-                  <TrendingUp size={16} className="text-blue-400" />
+                  <TrendingUp size={16} className="text-purple-600" />
                   Sort By
                 </label>
                 <CustomDropdown
@@ -356,7 +356,7 @@ export default function Movies() {
                     setShowFilters(false);
                   }}
                   options={sortOptions}
-                  focusColor="focus:ring-blue-500"
+                  focusColor="focus:ring-purple-500"
                 />
               </div>
 
@@ -381,7 +381,7 @@ export default function Movies() {
               {/* Year Filter */}
               <div className="space-y-3">
                 <label className="flex items-center gap-2 text-sm font-semibold text-gray-200">
-                  <Calendar size={16} className="text-purple-400" />
+                  <Calendar size={16} className="text-purple-600" />
                   Release Year
                 </label>
                 <CustomDropdown
@@ -408,7 +408,7 @@ export default function Movies() {
               className="group cursor-pointer"
             >
               {/* Poster */}
-              <div className="relative overflow-hidden rounded-lg mb-3 aspect-[2/3] bg-slate-800">
+              <div className="relative overflow-hidden rounded-lg mb-3 aspect-[2/3] bg-gray-900">
                 {movie.poster_path ? (
                   <img
                     src={`${IMAGE_BASE_URL}${movie.poster_path}`}
@@ -455,8 +455,8 @@ export default function Movies() {
               onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
               disabled={currentPage === 1}
               className={`p-3 rounded-lg transition-colors ${currentPage === 1
-                ? "bg-gray-700 text-gray-500 cursor-not-allowed"
-                : "bg-blue-600 hover:bg-blue-700 text-white"
+                ? "bg-gray-800 text-gray-500 cursor-not-allowed"
+                : "bg-purple-600 hover:bg-purple-600/90 text-white"
                 }`}
             >
               <ChevronLeft size={20} />
@@ -477,7 +477,7 @@ export default function Movies() {
                   key={page}
                   onClick={() => setCurrentPage(page)}
                   className={`w-10 h-10 rounded-lg transition-colors ${currentPage === page
-                    ? "bg-blue-600 text-white"
+                    ? "bg-purple-600 text-white"
                     : "bg-white/10 hover:bg-white/20 text-white"
                     }`}
                 >
@@ -490,8 +490,8 @@ export default function Movies() {
               onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
               disabled={currentPage === totalPages}
               className={`p-3 rounded-lg transition-colors ${currentPage === totalPages
-                ? "bg-gray-700 text-gray-500 cursor-not-allowed"
-                : "bg-blue-600 hover:bg-blue-700 text-white"
+                ? "bg-gray-800 text-gray-500 cursor-not-allowed"
+                : "bg-purple-600 hover:bg-purple-600/90 text-white"
                 }`}
             >
               <ChevronRight size={20} />

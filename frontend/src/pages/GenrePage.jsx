@@ -178,7 +178,7 @@ export default function GenrePage() {
                         <button
                             onClick={() => setSelectedType("movie")}
                             className={`px-6 py-2 rounded-2xl text-sm font-medium transition-all duration-200 ${selectedType === "movie"
-                                    ? "bg-blue-600 text-white shadow-lg"
+                                    ? "bg-purple-600 text-white shadow-lg"
                                     : "text-gray-300 hover:text-white hover:bg-white/10"
                                 }`}
                         >
@@ -187,7 +187,7 @@ export default function GenrePage() {
                         <button
                             onClick={() => setSelectedType("tv")}
                             className={`px-6 py-2 rounded-2xl text-sm font-medium transition-all duration-200 ${selectedType === "tv"
-                                    ? "bg-blue-600 text-white shadow-lg"
+                                    ? "bg-purple-600 text-white shadow-lg"
                                     : "text-gray-300 hover:text-white hover:bg-white/10"
                                 }`}
                         >
@@ -205,7 +205,7 @@ export default function GenrePage() {
                             className="group cursor-pointer"
                         >
                             {/* Poster */}
-                            <div className="relative overflow-hidden rounded-lg mb-3 aspect-[2/3] bg-slate-800">
+                            <div className="relative overflow-hidden rounded-lg mb-3 aspect-[2/3] bg-gray-900">
                                 {item.poster_path ? (
                                     <img
                                         src={`${IMAGE_BASE_URL}${item.poster_path}`}
@@ -220,7 +220,7 @@ export default function GenrePage() {
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
                                 {/* Type Badge */}
-                                <div className="absolute top-2 right-2 bg-blue-600 text-white text-xs font-semibold px-2 py-1 rounded">
+                                <div className="absolute top-2 right-2 bg-purple-600 text-white text-xs font-semibold px-2 py-1 rounded">
                                     {item.media_type === "movie" ? "Movie" : "TV Show"}
                                 </div>
                             </div>
@@ -257,8 +257,8 @@ export default function GenrePage() {
                             onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
                             disabled={currentPage === 1}
                             className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${currentPage === 1
-                                ? "bg-gray-700 text-gray-500 cursor-not-allowed"
-                                : "bg-blue-600 hover:bg-blue-700 text-white"
+                                ? "bg-gray-800 text-gray-500 cursor-not-allowed"
+                                : "bg-purple-600 hover:bg-purple-600/90 text-white"
                                 }`}
                         >
                             <ChevronLeft size={20} />
@@ -270,7 +270,7 @@ export default function GenrePage() {
                             <button
                                 onClick={() => setCurrentPage(1)}
                                 className={`w-10 h-10 rounded-lg transition-colors ${currentPage === 1
-                                    ? "bg-blue-600 text-white"
+                                    ? "bg-purple-600 text-white"
                                     : "bg-white/10 hover:bg-white/20 text-white"
                                     }`}
                             >
@@ -290,7 +290,7 @@ export default function GenrePage() {
                                         key={page}
                                         onClick={() => setCurrentPage(page)}
                                         className={`w-10 h-10 rounded-lg transition-colors ${currentPage === page
-                                            ? "bg-blue-600 text-white"
+                                            ? "bg-purple-600 text-white"
                                             : "bg-white/10 hover:bg-white/20 text-white"
                                             }`}
                                     >
@@ -306,7 +306,7 @@ export default function GenrePage() {
                                 <button
                                     onClick={() => setCurrentPage(totalPages)}
                                     className={`w-10 h-10 rounded-lg transition-colors ${currentPage === totalPages
-                                        ? "bg-blue-600 text-white"
+                                        ? "bg-purple-600 text-white"
                                         : "bg-white/10 hover:bg-white/20 text-white"
                                         }`}
                                 >
@@ -319,8 +319,8 @@ export default function GenrePage() {
                             onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
                             disabled={currentPage === totalPages}
                             className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${currentPage === totalPages
-                                ? "bg-gray-700 text-gray-500 cursor-not-allowed"
-                                : "bg-blue-600 hover:bg-blue-700 text-white"
+                                ? "bg-gray-800 text-gray-500 cursor-not-allowed"
+                                : "bg-purple-600 hover:bg-purple-600/90 text-white"
                                 }`}
                         >
                             Next

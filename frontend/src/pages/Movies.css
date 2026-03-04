@@ -1,5 +1,5 @@
 :root {
-  --movies-bg: #071427;
+  --movies-bg: #0a0a0a;
   --movies-text: #f5f7ff;
   --movies-muted: rgba(255, 255, 255, 0.6);
   --movies-card: #0e1b2d;
@@ -197,7 +197,7 @@
 .movie-modal {
   position: relative;
   width: min(900px, 90vw);
-  background: #0c1a2c;
+  background: #121212;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 20px;
   padding: 32px;

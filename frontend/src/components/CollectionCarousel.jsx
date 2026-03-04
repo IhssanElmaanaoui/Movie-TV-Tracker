@@ -92,7 +92,7 @@ export default function CollectionCarousel({ onLoadComplete }) {
                     <h2 className="text-2xl text-white font-bold">Collections</h2>
                     <button
                         onClick={() => navigate("/collections")}
-                        className="text-sm bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-full transition-colors"
+                        className="text-sm bg-purple-600 hover:bg-purple-600/90 text-white px-4 py-1.5 rounded-full transition-colors"
                     >
                         Explore All
                     </button>
@@ -133,7 +133,7 @@ export default function CollectionCarousel({ onLoadComplete }) {
                             }}
                         >
                             {/* ✅ Rectangle Poster */}
-                            <div className="relative overflow-hidden rounded-lg mb-3 aspect-[2/3] bg-slate-800">
+                            <div className="relative overflow-hidden rounded-lg mb-3 aspect-[2/3] bg-gray-900">
                                 <img
                                     src={`${IMAGE_BASE_URL}${collection.poster}`}
                                     alt={collection.name}

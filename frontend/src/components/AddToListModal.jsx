@@ -129,19 +129,19 @@ export default function AddToListModal({ isOpen, onClose, user, tmdbId, contentT
                 {/* Header */}
                 <div className="flex items-center justify-between px-6 py-4 border-b border-gray-700">
                     <div className="flex items-center gap-2">
-                        <List size={20} className="text-purple-400" />
+                        <List size={20} className="text-purple-600" />
                         <h2 className="text-lg font-semibold text-white">Add to List</h2>
                     </div>
                     <button
                         onClick={onClose}
-                        className="text-gray-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-gray-800"
+                        className="text-gray-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-gray-900"
                     >
                         <X size={20} />
                     </button>
                 </div>
 
                 {contentTitle && (
-                    <div className="px-6 py-2 bg-gray-800/50 border-b border-gray-700">
+                    <div className="px-6 py-2 bg-gray-900/50 border-b border-gray-700">
                         <p className="text-sm text-gray-300 truncate">
                             <span className="text-gray-500">Content: </span>{contentTitle}
                         </p>
@@ -179,8 +179,8 @@ export default function AddToListModal({ isOpen, onClose, user, tmdbId, contentT
                                             onClick={() => handleToggleList(list)}
                                             disabled={loading}
                                             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left ${inList
-                                                    ? 'bg-purple-600/20 border border-purple-500/50 hover:bg-purple-600/30'
-                                                    : 'bg-gray-800/50 border border-gray-700 hover:bg-gray-800'
+                                                    ? 'bg-purple-600/20 border border-purple-600/50 hover:bg-purple-600/30'
+                                                    : 'bg-gray-900/50 border border-gray-700 hover:bg-gray-900'
                                                 }`}
                                         >
                                             {/* Checkbox indicator */}
@@ -211,7 +211,7 @@ export default function AddToListModal({ isOpen, onClose, user, tmdbId, contentT
                     {!showCreateForm ? (
                         <button
                             onClick={() => setShowCreateForm(true)}
-                            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/50 rounded-xl text-purple-300 hover:text-purple-200 text-sm font-medium transition-all"
+                            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-600/50 rounded-xl text-purple-600 hover:text-purple-600 text-sm font-medium transition-all"
                         >
                             <Plus size={16} />
                             Create New List
@@ -227,7 +227,7 @@ export default function AddToListModal({ isOpen, onClose, user, tmdbId, contentT
                                 placeholder="List name *"
                                 maxLength={255}
                                 autoFocus
-                                className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                             />
 
                             <input
@@ -235,7 +235,7 @@ export default function AddToListModal({ isOpen, onClose, user, tmdbId, contentT
                                 value={newListDescription}
                                 onChange={(e) => setNewListDescription(e.target.value)}
                                 placeholder="Description (optional)"
-                                className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                             />
 
                             <label className="flex items-center gap-2 cursor-pointer">
@@ -256,7 +256,7 @@ export default function AddToListModal({ isOpen, onClose, user, tmdbId, contentT
                                 <button
                                     type="submit"
                                     disabled={isCreating}
-                                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-60"
+                                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-600/90 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-60"
                                 >
                                     {isCreating ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
                                     {isCreating ? 'Creating...' : 'Create'}
@@ -264,7 +264,7 @@ export default function AddToListModal({ isOpen, onClose, user, tmdbId, contentT
                                 <button
                                     type="button"
                                     onClick={() => { setShowCreateForm(false); setCreateError(''); }}
-                                    className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded-lg text-sm transition-colors"
+                                    className="px-4 py-2 bg-gray-800 hover:bg-gray-800 text-gray-300 rounded-lg text-sm transition-colors"
                                 >
                                     Cancel
                                 </button>

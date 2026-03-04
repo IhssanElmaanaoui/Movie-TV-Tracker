@@ -21,8 +21,8 @@ export default function StartChatButton({ userId, username, className = "", vari
 
     // Variant styles
     const variants = {
-        primary: "bg-purple-600 hover:bg-purple-700 text-white",
-        secondary: "bg-gray-700 hover:bg-gray-600 text-white",
+        primary: "bg-purple-600 hover:bg-purple-600/90 text-white",
+        secondary: "bg-gray-800 hover:bg-gray-800 text-white",
         outline: "border-2 border-purple-600 text-purple-600 hover:bg-purple-600 hover:text-white",
         ghost: "text-purple-600 hover:bg-purple-600/10"
     };

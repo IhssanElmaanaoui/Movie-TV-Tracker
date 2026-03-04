@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Camera, Lock, User, Mail, LogOut, Save, Film, Tv, Users, UserPlus, Heart, List, Eye, Star, Activity, Plus, Trash2, ChevronLeft, Loader2 } from "lucide-react";
 import { userStorage, authService } from "../services/authService";
-import { likesService, watchlistService, listService } from "../services/contentService";
+import { likesService, watchlistService, listService, watchedService } from "../services/contentService";
 
 const TMDB_BEARER_TOKEN = import.meta.env.VITE_TMDB_BEARER_TOKEN || "YOUR_TOKEN_HERE";
 const IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w500";
@@ -20,6 +20,9 @@ export default function Profile() {
     const [watchlistMovies, setWatchlistMovies] = useState([]);
     const [watchlistTvShows, setWatchlistTvShows] = useState([]);
     const [isLoadingWatchlist, setIsLoadingWatchlist] = useState(true);
+    const [watchedMovies, setWatchedMovies] = useState([]);
+    const [watchedTvShows, setWatchedTvShows] = useState([]);
+    const [isLoadingWatched, setIsLoadingWatched] = useState(true);
 
     // Lists state
     const [userLists, setUserLists] = useState([]);
@@ -42,6 +45,12 @@ export default function Profile() {
         listsCount: 0
     });
     const [isLoadingStats, setIsLoadingStats] = useState(true);
+
+    // Followers/Following Modal state
+    const [showFollowModal, setShowFollowModal] = useState(false);
+    const [followModalType, setFollowModalType] = useState('followers'); // 'followers' or 'following'
+    const [followList, setFollowList] = useState([]);
+    const [isLoadingFollow, setIsLoadingFollow] = useState(false);
 
     const [formData, setFormData] = useState({
         username: "",
@@ -99,6 +108,16 @@ export default function Profile() {
         };
 
         fetchUserStats();
+
+        // Refetch when window gains focus (user returns to the page)
+        const handleFocus = () => {
+            fetchUserStats();
+        };
+
+        window.addEventListener('focus', handleFocus);
+        return () => {
+            window.removeEventListener('focus', handleFocus);
+        };
     }, [user?.id]);
 
     // Fetch user favorites
@@ -156,16 +175,29 @@ export default function Profile() {
                     setLikedMovies(movieDetails.filter(m => m !== null));
                     setLikedTvShows(tvDetails.filter(t => t !== null));
                 } else {
-                    console.error('Failed to fetch likes:', result.error);
+                    setLikedMovies([]);
+                    setLikedTvShows([]);
                 }
             } catch (error) {
                 console.error('Error fetching likes:', error);
+                setLikedMovies([]);
+                setLikedTvShows([]);
             } finally {
                 setIsLoadingLikes(false);
             }
         };
 
         fetchLikes();
+
+        // Refetch when window gains focus (user returns to the page)
+        const handleFocus = () => {
+            fetchLikes();
+        };
+
+        window.addEventListener('focus', handleFocus);
+        return () => {
+            window.removeEventListener('focus', handleFocus);
+        };
     }, [user?.id]);
 
     // Fetch user watchlist
@@ -223,16 +255,109 @@ export default function Profile() {
                     setWatchlistMovies(movieDetails.filter(m => m !== null));
                     setWatchlistTvShows(tvDetails.filter(t => t !== null));
                 } else {
-                    console.error('Failed to fetch watchlist:', result.error);
+                    setWatchlistMovies([]);
+                    setWatchlistTvShows([]);
                 }
             } catch (error) {
                 console.error('Error fetching watchlist:', error);
+                setWatchlistMovies([]);
+                setWatchlistTvShows([]);
             } finally {
                 setIsLoadingWatchlist(false);
             }
         };
 
         fetchWatchlist();
+
+        // Refetch when window gains focus (user returns to the page)
+        const handleFocus = () => {
+            fetchWatchlist();
+        };
+
+        window.addEventListener('focus', handleFocus);
+        return () => {
+            window.removeEventListener('focus', handleFocus);
+        };
+    }, [user?.id]);
+
+    // Fetch user watched content
+    useEffect(() => {
+        const fetchWatched = async () => {
+            if (!user?.id) return;
+
+            setIsLoadingWatched(true);
+            try {
+                const result = await watchedService.getUserWatchedContent(user.id);
+                if (result.success && result.data) {
+                    // Separate movies and TV shows
+                    const movies = result.data.filter(item => item.contentType === 'MOVIE');
+                    const tvShows = result.data.filter(item => item.contentType === 'TV');
+
+                    // Fetch details from TMDB for movies
+                    const movieDetailsPromises = movies.slice(0, 6).map(async (item) => {
+                        try {
+                            const response = await fetch(
+                                `https://api.themoviedb.org/3/movie/${item.tmdbId}?language=en-US`,
+                                {
+                                    headers: {
+                                        Authorization: `Bearer ${TMDB_BEARER_TOKEN}`,
+                                    },
+                                }
+                            );
+                            return await response.json();
+                        } catch (error) {
+                            console.error('Error fetching movie details:', error);
+                            return null;
+                        }
+                    });
+
+                    // Fetch details from TMDB for TV shows
+                    const tvDetailsPromises = tvShows.slice(0, 6).map(async (item) => {
+                        try {
+                            const response = await fetch(
+                                `https://api.themoviedb.org/3/tv/${item.tmdbId}?language=en-US`,
+                                {
+                                    headers: {
+                                        Authorization: `Bearer ${TMDB_BEARER_TOKEN}`,
+                                    },
+                                }
+                            );
+                            return await response.json();
+                        } catch (error) {
+                            console.error('Error fetching TV show details:', error);
+                            return null;
+                        }
+                    });
+
+                    const movieDetails = await Promise.all(movieDetailsPromises);
+                    const tvDetails = await Promise.all(tvDetailsPromises);
+
+                    setWatchedMovies(movieDetails.filter(m => m !== null));
+                    setWatchedTvShows(tvDetails.filter(t => t !== null));
+                } else {
+                    setWatchedMovies([]);
+                    setWatchedTvShows([]);
+                }
+            } catch (error) {
+                console.error('Error fetching watched content:', error);
+                setWatchedMovies([]);
+                setWatchedTvShows([]);
+            } finally {
+                setIsLoadingWatched(false);
+            }
+        };
+
+        fetchWatched();
+
+        // Refetch when window gains focus (user returns to the page)
+        const handleFocus = () => {
+            fetchWatched();
+        };
+
+        window.addEventListener('focus', handleFocus);
+        return () => {
+            window.removeEventListener('focus', handleFocus);
+        };
     }, [user?.id]);
 
     // Fetch user lists
@@ -313,6 +438,59 @@ export default function Profile() {
         // Clear error for this field
         if (errors[name]) {
             setErrors(prev => ({ ...prev, [name]: "" }));
+        }
+    };
+
+    // Fetch followers/following
+    const fetchFollowers = async () => {
+        if (!user?.id) return;
+
+        setIsLoadingFollow(true);
+        try {
+            console.log('Fetching followers for user ID:', user.id);
+            const response = await fetch(`http://localhost:8080/api/users/${user.id}/followers`);
+            if (response.ok) {
+                const data = await response.json();
+                console.log('Followers data received:', data);
+                setFollowList(data);
+            } else {
+                console.error('Failed to fetch followers, status:', response.status);
+            }
+        } catch (error) {
+            console.error('Error fetching followers:', error);
+        } finally {
+            setIsLoadingFollow(false);
+        }
+    };
+
+    const fetchFollowing = async () => {
+        if (!user?.id) return;
+
+        setIsLoadingFollow(true);
+        try {
+            console.log('Fetching following for user ID:', user.id);
+            const response = await fetch(`http://localhost:8080/api/users/${user.id}/following`);
+            if (response.ok) {
+                const data = await response.json();
+                console.log('Following data received:', data);
+                setFollowList(data);
+            } else {
+                console.error('Failed to fetch following, status:', response.status);
+            }
+        } catch (error) {
+            console.error('Error fetching following:', error);
+        } finally {
+            setIsLoadingFollow(false);
+        }
+    };
+
+    const openFollowModal = (type) => {
+        setFollowModalType(type);
+        setShowFollowModal(true);
+        if (type === 'followers') {
+            fetchFollowers();
+        } else {
+            fetchFollowing();
         }
     };
 
@@ -536,31 +714,26 @@ export default function Profile() {
     ];
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 pt-24 pb-20 px-4">
-            <div className="max-w-6xl mx-auto">
-
-                {/* Success Message */}
-                {successMessage && (
-                    <div className="mb-6 p-4 bg-green-500/20 border border-green-500/50 rounded-xl text-green-300 text-center">
+        <div className="min-h-screen bg-slate-950 pt-32 pb-12">
+            {/* Success Message */}
+            {successMessage && (
+                <div className="max-w-7xl mx-auto px-4 mb-4">
+                    <div className="p-3 bg-gray-800 border-l-4 border-purple-600 text-gray-200 font-medium">
                         {successMessage}
                     </div>
-                )}
+                </div>
+            )}
 
-                {/* Main Profile Container */}
-                <div className="bg-slate-800/50 backdrop-blur-md rounded-2xl shadow-2xl border border-gray-700/50 overflow-hidden">
-
-                    {/* Cover Image */}
-                    <div className="bg-gradient-to-r from-blue-600 to-cyan-600 h-48 relative"></div>
-
-                    {/* Profile Header */}
-                    <div className="px-8 pb-6">
-                        <div className="flex flex-col md:flex-row md:items-end md:justify-between -mt-16 pb-4 border-b border-gray-700/50">
-
+            <div className="max-w-7xl mx-auto px-4">
+                {/* Compact Profile Header */}
+                <div className="bg-gray-900 border-b border-gray-700 mb-6">
+                    <div className="p-4 md:p-6">
+                        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                             {/* Left: Profile Picture and Info */}
-                            <div className="flex flex-col md:flex-row md:items-end gap-4">
+                            <div className="flex items-start md:items-center gap-3 md:gap-5 w-full md:w-auto">
                                 {/* Profile Picture */}
-                                <div className="relative">
-                                    <div className="w-32 h-32 rounded-full border-4 border-slate-800 overflow-hidden bg-slate-700 shadow-xl">
+                                <div className="relative flex-shrink-0">
+                                    <div className="w-20 h-20 md:w-24 md:h-24 border-2 border-gray-700 overflow-hidden bg-gray-800">
                                         {previewImage ? (
                                             <img
                                                 src={previewImage}
@@ -574,8 +747,8 @@ export default function Profile() {
                                         )}
                                     </div>
                                     {isEditing && (
-                                        <label className="absolute bottom-0 right-0 w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center cursor-pointer hover:bg-blue-700 transition border-2 border-slate-800 shadow-lg">
-                                            <Camera size={20} className="text-white" />
+                                        <label className="absolute bottom-0 right-0 w-8 h-8 bg-purple-600 flex items-center justify-center cursor-pointer hover:bg-purple-600/90 transition-all">
+                                            <Camera size={16} className="text-black" />
                                             <input
                                                 type="file"
                                                 accept="image/*"
@@ -586,32 +759,48 @@ export default function Profile() {
                                     )}
                                 </div>
 
-                                {/* Username */}
-                                <div className="mb-2">
-                                    <h1 className="text-3xl font-bold text-white">{user.username}</h1>
+                                {/* Username and Bio */}
+                                <div className="flex-1 min-w-0">
+                                    <h1 className="text-xl md:text-2xl font-bold text-white mb-1 truncate">{user.username}</h1>
                                     {user.bio && !isEditing && (
-                                        <p className="text-gray-400 mt-1">{user.bio}</p>
+                                        <p className="text-gray-400 text-sm max-w-lg line-clamp-2 mb-2">{user.bio}</p>
                                     )}
+                                    <div className="flex flex-wrap items-center gap-3 md:gap-4 text-xs md:text-sm text-gray-400">
+                                        <button
+                                            onClick={() => openFollowModal('followers')}
+                                            className="group flex items-center gap-1 hover:text-purple-600 transition-colors cursor-pointer"
+                                        >
+                                            <Users size={14} />
+                                            <span className="font-bold text-white group-hover:text-purple-600 transition-colors">{stats.followers}</span> Followers
+                                        </button>
+                                        <button
+                                            onClick={() => openFollowModal('following')}
+                                            className="group flex items-center gap-1 hover:text-purple-600 transition-colors cursor-pointer"
+                                        >
+                                            <UserPlus size={14} />
+                                            <span className="font-bold text-white group-hover:text-purple-600 transition-colors">{stats.following}</span> Following
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
 
-                            {/* Right: Edit Profile Button */}
-                            <div className="flex gap-3 mt-4 md:mt-0 mb-2">
+                            {/* Right: Action Buttons */}
+                            <div className="flex gap-2 w-full md:w-auto flex-shrink-0">
                                 {!isEditing ? (
                                     <button
                                         onClick={() => setIsEditing(true)}
-                                        className="px-6 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg font-semibold hover:from-blue-700 hover:to-cyan-700 transition-all duration-200 shadow-lg"
+                                        className="w-full md:w-auto px-5 py-2 bg-purple-600 text-black text-sm font-bold hover:bg-purple-600/90 transition-colors whitespace-nowrap"
                                     >
-                                        Edit Profile
+                                        EDIT PROFILE
                                     </button>
                                 ) : (
                                     <>
                                         <button
                                             onClick={handleSubmit}
-                                            className="px-6 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg font-semibold hover:from-blue-700 hover:to-cyan-700 transition-all duration-200 shadow-lg flex items-center gap-2"
+                                            className="flex-1 md:flex-none px-5 py-2 bg-purple-600 text-black text-sm font-bold hover:bg-purple-600/90 transition-colors flex items-center justify-center gap-2 whitespace-nowrap"
                                         >
-                                            <Save size={18} />
-                                            Save
+                                            <Save size={16} />
+                                            SAVE
                                         </button>
                                         <button
                                             onClick={() => {
@@ -627,61 +816,87 @@ export default function Profile() {
                                                 });
                                                 setPreviewImage(user.profilePictureUrl || null);
                                             }}
-                                            className="px-6 py-2 bg-gray-600 text-white rounded-lg font-semibold hover:bg-gray-700 transition-all duration-200 shadow-lg"
+                                            className="flex-1 md:flex-none px-5 py-2 bg-gray-800 text-white text-sm font-bold hover:bg-[#333333] transition-colors whitespace-nowrap"
                                         >
-                                            Cancel
+                                            CANCEL
                                         </button>
                                     </>
                                 )}
                             </div>
                         </div>
+                    </div>
+                </div>
 
-                        {/* Statistics Bar */}
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 py-6 border-b border-gray-700/50">
-                            <div className="text-center">
-                                <div className="flex items-center justify-center gap-2 mb-1">
-                                    <Film size={20} className="text-blue-400" />
-                                    <span className="text-2xl font-bold text-white">{stats.moviesWatched}</span>
+                {/* Main Layout: Sidebar + Content */}
+                <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                    {/* Sidebar */}
+                    <div className="lg:col-span-1 space-y-4">
+                        {/* Stats Panel */}
+                        <div className="bg-gray-900 border border-gray-700 p-5">
+                            <h2 className="text-xs font-bold text-purple-600 uppercase tracking-wider mb-4">Statistics</h2>
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between pb-3 border-b border-gray-700">
+                                    <div className="flex items-center gap-2 text-gray-400 text-sm">
+                                        <Film size={16} className="text-purple-600" />
+                                        <span>Movies</span>
+                                    </div>
+                                    <span className="text-xl font-bold text-white">{stats.moviesWatched}</span>
                                 </div>
-                                <p className="text-gray-400 text-sm">Movies Watched</p>
-                            </div>
-                            <div className="text-center">
-                                <div className="flex items-center justify-center gap-2 mb-1">
-                                    <Tv size={20} className="text-purple-400" />
-                                    <span className="text-2xl font-bold text-white">{stats.seriesWatched}</span>
+                                <div className="flex items-center justify-between pb-3 border-b border-gray-700">
+                                    <div className="flex items-center gap-2 text-gray-400 text-sm">
+                                        <Tv size={16} className="text-purple-600" />
+                                        <span>TV Shows</span>
+                                    </div>
+                                    <span className="text-xl font-bold text-white">{stats.seriesWatched}</span>
                                 </div>
-                                <p className="text-gray-400 text-sm">Series Watched</p>
-                            </div>
-                            <div className="text-center cursor-pointer hover:bg-slate-700/30 rounded-lg p-2 transition">
-                                <div className="flex items-center justify-center gap-2 mb-1">
-                                    <UserPlus size={20} className="text-green-400" />
-                                    <span className="text-2xl font-bold text-white">{stats.following}</span>
+                                <div className="flex items-center justify-between pb-3 border-b border-gray-700">
+                                    <div className="flex items-center gap-2 text-gray-400 text-sm">
+                                        <Star size={16} className="text-purple-600" />
+                                        <span>Reviews</span>
+                                    </div>
+                                    <span className="text-xl font-bold text-white">{stats.reviewsCount}</span>
                                 </div>
-                                <p className="text-gray-400 text-sm">Following</p>
-                            </div>
-                            <div className="text-center cursor-pointer hover:bg-slate-700/30 rounded-lg p-2 transition">
-                                <div className="flex items-center justify-center gap-2 mb-1">
-                                    <Users size={20} className="text-cyan-400" />
-                                    <span className="text-2xl font-bold text-white">{stats.followers}</span>
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2 text-gray-400 text-sm">
+                                        <List size={16} className="text-purple-600" />
+                                        <span>Lists</span>
+                                    </div>
+                                    <span className="text-xl font-bold text-white">{stats.listsCount}</span>
                                 </div>
-                                <p className="text-gray-400 text-sm">Followers</p>
                             </div>
                         </div>
 
+                        {/* Quick Actions */}
+                        <div className="bg-gray-900 border border-gray-700 p-5">
+                            <h2 className="text-xs font-bold text-purple-600 uppercase tracking-wider mb-4">Quick Actions</h2>
+                            <div className="space-y-2">
+                                <button
+                                    onClick={handleLogout}
+                                    className="w-full text-left px-3 py-2 bg-gray-800 hover:bg-red-900/30 border border-gray-700 hover:border-red-500 transition-colors text-sm text-gray-300 hover:text-red-400 flex items-center gap-2"
+                                >
+                                    <LogOut size={14} />
+                                    Sign Out
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Main Content Area */}
+                    <div className="lg:col-span-3">
                         {/* Tab Navigation */}
-                        <div className="flex gap-2 overflow-x-auto py-4 scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
+                        <div className="flex gap-1 overflow-x-auto mb-6 border-b border-gray-700 scrollbar-thin scrollbar-thumb-[#1a1a1a] scrollbar-track-transparent">
                             {tabs.map((tab) => {
                                 const Icon = tab.icon;
                                 return (
                                     <button
                                         key={tab.id}
                                         onClick={() => setActiveTab(tab.id)}
-                                        className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all whitespace-nowrap ${activeTab === tab.id
-                                            ? "bg-blue-600 text-white"
-                                            : "bg-slate-700/50 text-gray-400 hover:bg-slate-700 hover:text-white"
+                                        className={`flex items-center gap-2 px-4 py-3 text-sm font-bold transition-all whitespace-nowrap border-b-2 ${activeTab === tab.id
+                                            ? "border-purple-600 text-white"
+                                            : "border-transparent text-gray-400 hover:text-white"
                                             }`}
                                     >
-                                        <Icon size={18} />
+                                        <Icon size={16} />
                                         {tab.label}
                                     </button>
                                 );
@@ -689,16 +904,15 @@ export default function Profile() {
                         </div>
 
                         {/* Tab Content */}
-                        <div className="py-6">
+                        <div>
                             {/* Profile Tab */}
                             {activeTab === "profile" && (
-                                <div className="space-y-6">
+                                <div className="bg-gray-900 border border-gray-700 p-6 space-y-6">
                                     {isEditing ? (
-                                        <form onSubmit={handleSubmit} className="space-y-6">
-                                            {/* Username Field */}
+                                        <form onSubmit={handleSubmit} className="space-y-6">\n                                            {/* Username Field */}
                                             <div>
-                                                <label className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
-                                                    <User size={16} />
+                                                <label className="flex items-center gap-2 text-xs font-bold text-gray-400 mb-2 uppercase tracking-wider">
+                                                    <User size={16} className="text-purple-600" />
                                                     Username
                                                 </label>
                                                 <input
@@ -706,16 +920,16 @@ export default function Profile() {
                                                     name="username"
                                                     value={formData.username}
                                                     onChange={handleInputChange}
-                                                    className={`w-full px-4 py-3 rounded-lg bg-slate-700/50 border ${errors.username
+                                                    className={`w-full px-4 py-3 rounded-lg bg-gray-800/50 border ${errors.username
                                                         ? 'border-red-500'
                                                         : isEditing && formData.username.trim().length >= 3 && formData.username.trim() !== originalUsername
                                                             ? usernameAvailable === true
                                                                 ? 'border-green-500'
                                                                 : usernameAvailable === false
                                                                     ? 'border-red-500'
-                                                                    : 'border-gray-600'
-                                                            : 'border-gray-600'
-                                                        } text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                                                                    : 'border-gray-700'
+                                                            : 'border-gray-700'
+                                                        } text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500`}
                                                 />
                                                 {isCheckingUsername && formData.username.trim().length >= 3 && formData.username.trim() !== originalUsername && (
                                                     <div className="text-gray-400 text-sm mt-2 flex items-center gap-1">
@@ -737,8 +951,8 @@ export default function Profile() {
 
                                             {/* Email Field */}
                                             <div>
-                                                <label className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
-                                                    <Mail size={16} />
+                                                <label className="flex items-center gap-2 text-sm font-semibold text-gray-200 mb-3">
+                                                    <Mail size={18} className="text-purple-600" />
                                                     Email
                                                 </label>
                                                 <input
@@ -746,15 +960,15 @@ export default function Profile() {
                                                     name="email"
                                                     value={formData.email}
                                                     onChange={handleInputChange}
-                                                    className={`w-full px-4 py-3 rounded-lg bg-slate-700/50 border ${errors.email ? 'border-red-500' : 'border-gray-600'
-                                                        } text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                                                    className={`w-full px-5 py-4 rounded-xl bg-gray-900/50 border-2 ${errors.email ? 'border-red-500 focus:border-red-500' : 'border-gray-700 focus:border-purple-600'
+                                                        } text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/20 transition-all backdrop-blur-sm`}
                                                 />
-                                                {errors.email && <p className="text-red-400 text-sm mt-1">{errors.email}</p>}
+                                                {errors.email && <p className="text-red-400 text-sm mt-2">{errors.email}</p>}
                                             </div>
 
                                             {/* Bio Field */}
                                             <div>
-                                                <label className="text-sm font-medium text-gray-300 mb-2 block">
+                                                <label className="text-xs font-bold text-gray-400 mb-2 block uppercase tracking-wider">
                                                     Bio
                                                 </label>
                                                 <textarea
@@ -763,19 +977,19 @@ export default function Profile() {
                                                     onChange={handleInputChange}
                                                     rows={4}
                                                     placeholder="Tell us about yourself..."
-                                                    className="w-full px-4 py-3 rounded-lg bg-slate-700/50 border border-gray-600 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                                                    className="w-full px-4 py-3 bg-gray-800 border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:border-purple-600 resize-none transition-colors"
                                                 />
                                             </div>
 
                                             {/* Password Change Section */}
                                             <div className="border-t border-gray-700 pt-6 mt-6">
-                                                <h3 className="flex items-center gap-2 text-lg font-semibold text-white mb-4">
-                                                    <Lock size={20} />
+                                                <h3 className="flex items-center gap-2 text-lg font-bold text-white mb-4">
+                                                    <Lock size={18} className="text-purple-600" />
                                                     Change Password
                                                 </h3>
                                                 <div className="space-y-4">
                                                     <div>
-                                                        <label className="text-sm font-medium text-gray-300 mb-2 block">
+                                                        <label className="text-xs font-bold text-gray-400 mb-2 block uppercase tracking-wider">
                                                             Current Password
                                                         </label>
                                                         <input
@@ -784,13 +998,13 @@ export default function Profile() {
                                                             value={formData.currentPassword}
                                                             onChange={handleInputChange}
                                                             placeholder="Enter current password"
-                                                            className={`w-full px-4 py-3 rounded-lg bg-slate-700/50 border ${errors.currentPassword ? 'border-red-500' : 'border-gray-600'
-                                                                } text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                                                            className={`w-full px-4 py-3 bg-gray-800 border ${errors.currentPassword ? 'border-red-500 focus:border-red-500' : 'border-gray-700 focus:border-purple-600'
+                                                                } text-white placeholder-gray-500 focus:outline-none transition-colors`}
                                                         />
                                                         {errors.currentPassword && <p className="text-red-400 text-sm mt-1">{errors.currentPassword}</p>}
                                                     </div>
                                                     <div>
-                                                        <label className="text-sm font-medium text-gray-300 mb-2 block">
+                                                        <label className="text-xs font-bold text-gray-400 mb-2 block uppercase tracking-wider">
                                                             New Password
                                                         </label>
                                                         <input
@@ -799,13 +1013,13 @@ export default function Profile() {
                                                             value={formData.newPassword}
                                                             onChange={handleInputChange}
                                                             placeholder="Enter new password"
-                                                            className={`w-full px-4 py-3 rounded-lg bg-slate-700/50 border ${errors.newPassword ? 'border-red-500' : 'border-gray-600'
-                                                                } text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                                                            className={`w-full px-4 py-3 bg-gray-800 border ${errors.newPassword ? 'border-red-500 focus:border-red-500' : 'border-gray-700 focus:border-purple-600'
+                                                                } text-white placeholder-gray-500 focus:outline-none transition-colors`}
                                                         />
                                                         {errors.newPassword && <p className="text-red-400 text-sm mt-1">{errors.newPassword}</p>}
                                                     </div>
                                                     <div>
-                                                        <label className="text-sm font-medium text-gray-300 mb-2 block">
+                                                        <label className="text-xs font-bold text-gray-400 mb-2 block uppercase tracking-wider">
                                                             Confirm New Password
                                                         </label>
                                                         <input
@@ -814,8 +1028,8 @@ export default function Profile() {
                                                             value={formData.confirmPassword}
                                                             onChange={handleInputChange}
                                                             placeholder="Confirm new password"
-                                                            className={`w-full px-4 py-3 rounded-lg bg-slate-700/50 border ${errors.confirmPassword ? 'border-red-500' : 'border-gray-600'
-                                                                } text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                                                            className={`w-full px-4 py-3 bg-gray-800 border ${errors.confirmPassword ? 'border-red-500 focus:border-red-500' : 'border-gray-700 focus:border-purple-600'
+                                                                } text-white placeholder-gray-500 focus:outline-none transition-colors`}
                                                         />
                                                         {errors.confirmPassword && <p className="text-red-400 text-sm mt-1">{errors.confirmPassword}</p>}
                                                     </div>
@@ -824,7 +1038,7 @@ export default function Profile() {
 
                                             {/* Error Message */}
                                             {errors.submit && (
-                                                <div className="p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-300 text-sm text-center">
+                                                <div className="p-3 bg-red-500/10 border-l-4 border-red-500 text-red-300 text-sm">
                                                     {errors.submit}
                                                 </div>
                                             )}
@@ -834,17 +1048,17 @@ export default function Profile() {
                                             <div>
                                                 <h3 className="text-lg font-semibold text-white mb-4">Account Information</h3>
                                                 <div className="space-y-3">
-                                                    <div className="flex justify-between items-center p-3 bg-slate-700/30 rounded-lg">
+                                                    <div className="flex justify-between items-center p-3 bg-gray-800/30 rounded-lg">
                                                         <span className="text-gray-400">Email:</span>
                                                         <span className="text-white">{user.email}</span>
                                                     </div>
-                                                    <div className="flex justify-between items-center p-3 bg-slate-700/30 rounded-lg">
+                                                    <div className="flex justify-between items-center p-3 bg-gray-800/30 rounded-lg">
                                                         <span className="text-gray-400">Member Since:</span>
                                                         <span className="text-white">
                                                             {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "N/A"}
                                                         </span>
                                                     </div>
-                                                    <div className="flex justify-between items-center p-3 bg-slate-700/30 rounded-lg">
+                                                    <div className="flex justify-between items-center p-3 bg-gray-800/30 rounded-lg">
                                                         <span className="text-gray-400">Account Status:</span>
                                                         <span className="text-green-400 font-semibold">Active</span>
                                                     </div>
@@ -857,7 +1071,7 @@ export default function Profile() {
                                                     <h3 className="text-lg font-semibold text-white">Liked Films & TV Shows</h3>
                                                     <button
                                                         onClick={() => navigate('/movies')}
-                                                        className="flex items-center gap-1 text-blue-400 hover:text-blue-300 text-sm"
+                                                        className="flex items-center gap-1 text-purple-600 hover:text-purple-600 text-sm"
                                                     >
                                                         <Plus size={16} />
                                                         Add Likes
@@ -867,18 +1081,18 @@ export default function Profile() {
                                                 {isLoadingLikes ? (
                                                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                                         {[1, 2, 3, 4].map((item) => (
-                                                            <div key={item} className="aspect-[2/3] bg-slate-700/30 rounded-lg animate-pulse"></div>
+                                                            <div key={item} className="aspect-[2/3] bg-gray-800/30 rounded-lg animate-pulse"></div>
                                                         ))}
                                                     </div>
                                                 ) : (
                                                     <div>
                                                         {likedMovies.length === 0 && likedTvShows.length === 0 ? (
-                                                            <div className="text-center py-12 bg-slate-700/20 rounded-lg border-2 border-dashed border-gray-600">
+                                                            <div className="text-center py-12 bg-gray-800/20 rounded-lg border-2 border-dashed border-gray-700">
                                                                 <Heart size={48} className="text-gray-600 mx-auto mb-4" />
                                                                 <p className="text-gray-400 mb-2">No likes yet</p>
                                                                 <button
                                                                     onClick={() => navigate('/movies')}
-                                                                    className="text-blue-400 hover:text-blue-300 text-sm"
+                                                                    className="text-purple-600 hover:text-purple-600 text-sm"
                                                                 >
                                                                     Browse movies and TV shows to add likes
                                                                 </button>
@@ -899,14 +1113,14 @@ export default function Profile() {
                                                                                     onClick={() => navigate(`/movie/${movie.id}`)}
                                                                                     className="cursor-pointer group relative"
                                                                                 >
-                                                                                    <div className="aspect-[2/3] rounded-lg overflow-hidden bg-slate-700 shadow-lg transition-transform group-hover:scale-105">
+                                                                                    <div className="aspect-[2/3] rounded-lg overflow-hidden bg-gray-800 shadow-lg transition-transform group-hover:scale-105">
                                                                                         <img
                                                                                             src={movie.poster_path ? `${IMAGE_BASE_URL}${movie.poster_path}` : 'https://via.placeholder.com/300x450?text=No+Image'}
                                                                                             alt={movie.title}
                                                                                             className="w-full h-full object-cover"
                                                                                         />
                                                                                     </div>
-                                                                                    <h5 className="text-sm text-white mt-2 line-clamp-2 group-hover:text-blue-400">
+                                                                                    <h5 className="text-sm text-white mt-2 line-clamp-2 group-hover:text-purple-600">
                                                                                         {movie.title}
                                                                                     </h5>
                                                                                 </div>
@@ -929,14 +1143,14 @@ export default function Profile() {
                                                                                     onClick={() => navigate(`/series/${show.id}`)}
                                                                                     className="cursor-pointer group relative"
                                                                                 >
-                                                                                    <div className="aspect-[2/3] rounded-lg overflow-hidden bg-slate-700 shadow-lg transition-transform group-hover:scale-105">
+                                                                                    <div className="aspect-[2/3] rounded-lg overflow-hidden bg-gray-800 shadow-lg transition-transform group-hover:scale-105">
                                                                                         <img
                                                                                             src={show.poster_path ? `${IMAGE_BASE_URL}${show.poster_path}` : 'https://via.placeholder.com/300x450?text=No+Image'}
                                                                                             alt={show.name}
                                                                                             className="w-full h-full object-cover"
                                                                                         />
                                                                                     </div>
-                                                                                    <h5 className="text-sm text-white mt-2 line-clamp-2 group-hover:text-blue-400">
+                                                                                    <h5 className="text-sm text-white mt-2 line-clamp-2 group-hover:text-purple-600">
                                                                                         {show.name}
                                                                                     </h5>
                                                                                 </div>
@@ -949,17 +1163,6 @@ export default function Profile() {
                                                     </div>
                                                 )}
                                             </div>
-
-                                            {/* Logout Button */}
-                                            <div className="pt-4 border-t border-gray-700">
-                                                <button
-                                                    onClick={handleLogout}
-                                                    className="flex items-center justify-center gap-2 w-full px-6 py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-all duration-200 shadow-lg"
-                                                >
-                                                    <LogOut size={20} />
-                                                    Logout
-                                                </button>
-                                            </div>
                                         </div>
                                     )}
                                 </div>
@@ -967,7 +1170,7 @@ export default function Profile() {
 
                             {/* Activity Tab */}
                             {activeTab === "activity" && (
-                                <div className="text-center py-12">
+                                <div className="bg-gray-900 border border-gray-700 p-12 text-center">
                                     <Activity size={48} className="text-gray-600 mx-auto mb-4" />
                                     <h3 className="text-xl font-semibold text-white mb-2">Your Activity</h3>
                                     <p className="text-gray-400">Your recent activities will appear here</p>
@@ -976,39 +1179,143 @@ export default function Profile() {
 
                             {/* Movies Tab */}
                             {activeTab === "movies" && (
-                                <div className="text-center py-12">
-                                    <Film size={48} className="text-gray-600 mx-auto mb-4" />
-                                    <h3 className="text-xl font-semibold text-white mb-2">Movies Watched</h3>
-                                    <p className="text-gray-400">Your watched movies will appear here</p>
+                                <div className="bg-gray-900 border border-gray-700 p-6">
+                                    <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-700">
+                                        <h3 className="text-lg font-bold text-white uppercase tracking-wide">Movies Watched</h3>
+                                        <button
+                                            onClick={() => navigate('/movies')}
+                                            className="flex items-center gap-1 text-purple-600 hover:text-purple-600 text-sm"
+                                        >
+                                            <Plus size={16} />
+                                            Browse Movies
+                                        </button>
+                                    </div>
+
+                                    {isLoadingWatched ? (
+                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                            {[1, 2, 3, 4].map((item) => (
+                                                <div key={item} className="aspect-[2/3] bg-gray-800/30 rounded-lg animate-pulse"></div>
+                                            ))}
+                                        </div>
+                                    ) : watchedMovies.length === 0 ? (
+                                        <div className="text-center py-12 bg-gray-800/20 rounded-lg border-2 border-dashed border-gray-700">
+                                            <Film size={48} className="text-gray-600 mx-auto mb-4" />
+                                            <p className="text-gray-400 mb-2">No watched movies yet</p>
+                                            <p className="text-gray-500 text-sm">Movies you mark as watched will appear here</p>
+                                        </div>
+                                    ) : (
+                                        <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+                                            {watchedMovies.map((movie) => (
+                                                <div
+                                                    key={movie.id}
+                                                    onClick={() => navigate(`/movies/${movie.id}`)}
+                                                    className="cursor-pointer group"
+                                                >
+                                                    <div className="relative aspect-[2/3] overflow-hidden rounded-lg border-2 border-transparent group-hover:border-purple-600 transition-all">
+                                                        {movie.poster_path ? (
+                                                            <img
+                                                                src={`${IMAGE_BASE_URL}${movie.poster_path}`}
+                                                                alt={movie.title}
+                                                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                                            />
+                                                        ) : (
+                                                            <div className="w-full h-full bg-gray-800 flex items-center justify-center">
+                                                                <Film className="w-12 h-12 text-gray-600" />
+                                                            </div>
+                                                        )}
+                                                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            <div className="absolute bottom-0 left-0 right-0 p-3">
+                                                                <h4 className="text-white text-sm font-semibold line-clamp-2">{movie.title}</h4>
+                                                                {movie.release_date && (
+                                                                    <p className="text-gray-300 text-xs mt-1">{new Date(movie.release_date).getFullYear()}</p>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                             )}
 
                             {/* TV Shows Tab */}
                             {activeTab === "tvshows" && (
-                                <div className="text-center py-12">
-                                    <Tv size={48} className="text-gray-600 mx-auto mb-4" />
-                                    <h3 className="text-xl font-semibold text-white mb-2">TV Shows Watched</h3>
-                                    <p className="text-gray-400">Your watched TV shows will appear here</p>
+                                <div className="bg-gray-900 border border-gray-700 p-6">
+                                    <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-700">
+                                        <h3 className="text-lg font-bold text-white uppercase tracking-wide">TV Shows Watched</h3>
+                                        <button
+                                            onClick={() => navigate('/series')}
+                                            className="flex items-center gap-1 text-purple-600 hover:text-purple-600 text-sm"
+                                        >
+                                            <Plus size={16} />
+                                            Browse TV Shows
+                                        </button>
+                                    </div>
+
+                                    {isLoadingWatched ? (
+                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                            {[1, 2, 3, 4].map((item) => (
+                                                <div key={item} className="aspect-[2/3] bg-gray-800/30 rounded-lg animate-pulse"></div>
+                                            ))}
+                                        </div>
+                                    ) : watchedTvShows.length === 0 ? (
+                                        <div className="text-center py-12 bg-gray-800/20 rounded-lg border-2 border-dashed border-gray-700">
+                                            <Tv size={48} className="text-gray-600 mx-auto mb-4" />
+                                            <p className="text-gray-400 mb-2">No watched TV shows yet</p>
+                                            <p className="text-gray-500 text-sm">TV shows you mark as watched will appear here</p>
+                                        </div>
+                                    ) : (
+                                        <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+                                            {watchedTvShows.map((show) => (
+                                                <div
+                                                    key={show.id}
+                                                    onClick={() => navigate(`/series/${show.id}`)}
+                                                    className="cursor-pointer group"
+                                                >
+                                                    <div className="relative aspect-[2/3] overflow-hidden rounded-lg border-2 border-transparent group-hover:border-purple-600 transition-all">
+                                                        {show.poster_path ? (
+                                                            <img
+                                                                src={`${IMAGE_BASE_URL}${show.poster_path}`}
+                                                                alt={show.name}
+                                                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                                            />
+                                                        ) : (
+                                                            <div className="w-full h-full bg-gray-800 flex items-center justify-center">
+                                                                <Tv className="w-12 h-12 text-gray-600" />
+                                                            </div>
+                                                        )}
+                                                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            <div className="absolute bottom-0 left-0 right-0 p-3">
+                                                                <h4 className="text-white text-sm font-semibold line-clamp-2">{show.name}</h4>
+                                                                {show.first_air_date && (
+                                                                    <p className="text-gray-300 text-xs mt-1">{new Date(show.first_air_date).getFullYear()}</p>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                             )}
 
                             {/* Reviews Tab */}
                             {activeTab === "reviews" && (
-                                <div className="text-center py-12">
+                                <div className="bg-gray-900 border border-gray-700 p-12 text-center">
                                     <Star size={48} className="text-gray-600 mx-auto mb-4" />
                                     <h3 className="text-xl font-semibold text-white mb-2">Your Reviews</h3>
                                     <p className="text-gray-400">Your reviews will appear here</p>
                                 </div>
-                            )}
-
-                            {/* Watchlist Tab */}
+                            )}\n\n                            {/* Watchlist Tab */}
                             {activeTab === "watchlist" && (
-                                <div>
-                                    <div className="flex items-center justify-between mb-4">
-                                        <h3 className="text-lg font-semibold text-white">Your Watchlist</h3>
+                                <div className="bg-gray-900 border border-gray-700 p-6">
+                                    <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-700">
+                                        <h3 className="text-lg font-bold text-white uppercase tracking-wide\">Your Watchlist</h3>
                                         <button
                                             onClick={() => navigate('/movies')}
-                                            className="flex items-center gap-1 text-blue-400 hover:text-blue-300 text-sm"
+                                            className="flex items-center gap-1 text-purple-600 hover:text-purple-600 text-sm"
                                         >
                                             <Plus size={16} />
                                             Add to Watchlist
@@ -1018,18 +1325,18 @@ export default function Profile() {
                                     {isLoadingWatchlist ? (
                                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                             {[1, 2, 3, 4].map((item) => (
-                                                <div key={item} className="aspect-[2/3] bg-slate-700/30 rounded-lg animate-pulse"></div>
+                                                <div key={item} className="aspect-[2/3] bg-gray-800/30 rounded-lg animate-pulse"></div>
                                             ))}
                                         </div>
                                     ) : (
                                         <div>
                                             {watchlistMovies.length === 0 && watchlistTvShows.length === 0 ? (
-                                                <div className="text-center py-12 bg-slate-700/20 rounded-lg border-2 border-dashed border-gray-600">
+                                                <div className="text-center py-12 bg-gray-800/20 rounded-lg border-2 border-dashed border-gray-700">
                                                     <Eye size={48} className="text-gray-600 mx-auto mb-4" />
                                                     <p className="text-gray-400 mb-2">No items in watchlist</p>
                                                     <button
                                                         onClick={() => navigate('/movies')}
-                                                        className="text-blue-400 hover:text-blue-300 text-sm"
+                                                        className="text-purple-600 hover:text-purple-600 text-sm"
                                                     >
                                                         Browse movies and TV shows to add to watchlist
                                                     </button>
@@ -1050,14 +1357,14 @@ export default function Profile() {
                                                                         onClick={() => navigate(`/movie/${movie.id}`)}
                                                                         className="cursor-pointer group relative"
                                                                     >
-                                                                        <div className="aspect-[2/3] rounded-lg overflow-hidden bg-slate-700 shadow-lg transition-transform group-hover:scale-105">
+                                                                        <div className="aspect-[2/3] rounded-lg overflow-hidden bg-gray-800 shadow-lg transition-transform group-hover:scale-105">
                                                                             <img
                                                                                 src={movie.poster_path ? `${IMAGE_BASE_URL}${movie.poster_path}` : 'https://via.placeholder.com/300x450?text=No+Image'}
                                                                                 alt={movie.title}
                                                                                 className="w-full h-full object-cover"
                                                                             />
                                                                         </div>
-                                                                        <h5 className="text-sm text-white mt-2 line-clamp-2 group-hover:text-blue-400">
+                                                                        <h5 className="text-sm text-white mt-2 line-clamp-2 group-hover:text-purple-600">
                                                                             {movie.title}
                                                                         </h5>
                                                                     </div>
@@ -1080,14 +1387,14 @@ export default function Profile() {
                                                                         onClick={() => navigate(`/series/${show.id}`)}
                                                                         className="cursor-pointer group relative"
                                                                     >
-                                                                        <div className="aspect-[2/3] rounded-lg overflow-hidden bg-slate-700 shadow-lg transition-transform group-hover:scale-105">
+                                                                        <div className="aspect-[2/3] rounded-lg overflow-hidden bg-gray-800 shadow-lg transition-transform group-hover:scale-105">
                                                                             <img
                                                                                 src={show.poster_path ? `${IMAGE_BASE_URL}${show.poster_path}` : 'https://via.placeholder.com/300x450?text=No+Image'}
                                                                                 alt={show.name}
                                                                                 className="w-full h-full object-cover"
                                                                             />
                                                                         </div>
-                                                                        <h5 className="text-sm text-white mt-2 line-clamp-2 group-hover:text-blue-400">
+                                                                        <h5 className="text-sm text-white mt-2 line-clamp-2 group-hover:text-purple-600">
                                                                             {show.name}
                                                                         </h5>
                                                                     </div>
@@ -1104,10 +1411,10 @@ export default function Profile() {
 
                             {/* Lists Tab */}
                             {activeTab === "lists" && (
-                                <div>
+                                <div className="bg-gray-900 border border-gray-700 p-6">
                                     {/* Flash message */}
                                     {listActionMsg && (
-                                        <div className="mb-4 px-4 py-2 bg-green-500/20 border border-green-500/40 rounded-lg text-green-300 text-sm">
+                                        <div className="mb-4 px-4 py-2 bg-green-500/10 border-l-4 border-green-500 text-green-300 text-sm">
                                             {listActionMsg}
                                         </div>
                                     )}
@@ -1122,12 +1429,12 @@ export default function Profile() {
                                         <div>
                                             <button
                                                 onClick={() => setSelectedList(null)}
-                                                className="flex items-center gap-2 text-blue-400 hover:text-blue-300 text-sm mb-4"
+                                                className="flex items-center gap-2 text-purple-600 hover:text-purple-600/80 text-sm mb-4 font-bold"
                                             >
                                                 <ChevronLeft size={16} />
-                                                Back to Lists
+                                                BACK TO LISTS
                                             </button>
-                                            <div className="flex items-center justify-between mb-4">
+                                            <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-700">
                                                 <div>
                                                     <h3 className="text-xl font-bold text-white">{selectedList.name}</h3>
                                                     {selectedList.description && (
@@ -1137,7 +1444,7 @@ export default function Profile() {
                                                 <span className="text-gray-400 text-sm">{selectedList.itemCount} item{selectedList.itemCount !== 1 ? 's' : ''}</span>
                                             </div>
                                             {selectedList.items?.length === 0 ? (
-                                                <div className="text-center py-12 bg-slate-700/20 rounded-lg border-2 border-dashed border-gray-600">
+                                                <div className="text-center py-12 bg-gray-800/20 rounded-lg border-2 border-dashed border-gray-700">
                                                     <List size={40} className="text-gray-600 mx-auto mb-3" />
                                                     <p className="text-gray-400 text-sm">This list is empty</p>
                                                     <p className="text-gray-500 text-xs mt-1">Go to a movie or series page and add it to this list</p>
@@ -1150,7 +1457,7 @@ export default function Profile() {
                                                             onClick={() => navigate(item.contentType === 'MOVIE' ? `/movie/${item.tmdbId}` : `/series/${item.tmdbId}`)}
                                                             className="cursor-pointer group"
                                                         >
-                                                            <div className="aspect-[2/3] rounded-lg overflow-hidden bg-slate-700 shadow-lg transition-transform group-hover:scale-105">
+                                                            <div className="aspect-[2/3] rounded-lg overflow-hidden bg-gray-800 shadow-lg transition-transform group-hover:scale-105">
                                                                 <img
                                                                     src={item.tmdbData?.poster_path
                                                                         ? `https://image.tmdb.org/t/p/w500${item.tmdbData.poster_path}`
@@ -1160,7 +1467,7 @@ export default function Profile() {
                                                                     className="w-full h-full object-cover"
                                                                 />
                                                             </div>
-                                                            <h5 className="text-sm text-white mt-2 line-clamp-2 group-hover:text-blue-400">
+                                                            <h5 className="text-sm text-white mt-2 line-clamp-2 group-hover:text-purple-600">
                                                                 {item.tmdbData?.title || item.tmdbData?.name || `ID: ${item.tmdbId}`}
                                                             </h5>
                                                             <p className="text-xs text-gray-500">
@@ -1177,7 +1484,7 @@ export default function Profile() {
                                                 <h3 className="text-lg font-semibold text-white">Your Lists</h3>
                                                 <button
                                                     onClick={() => { setShowCreateListForm(true); setCreateListError(''); }}
-                                                    className="flex items-center gap-1 text-purple-400 hover:text-purple-300 text-sm"
+                                                    className="flex items-center gap-1 text-purple-600 hover:text-purple-600 text-sm"
                                                 >
                                                     <Plus size={16} />
                                                     New List
@@ -1186,7 +1493,7 @@ export default function Profile() {
 
                                             {/* Create list form */}
                                             {showCreateListForm && (
-                                                <form onSubmit={handleCreateList} className="mb-6 p-4 bg-slate-700/30 rounded-xl border border-gray-600 space-y-3">
+                                                <form onSubmit={handleCreateList} className="mb-6 p-4 bg-gray-800/30 rounded-xl border border-gray-700 space-y-3">
                                                     <h4 className="text-sm font-semibold text-white">Create New List</h4>
                                                     <input
                                                         type="text"
@@ -1195,14 +1502,14 @@ export default function Profile() {
                                                         placeholder="List name *"
                                                         maxLength={255}
                                                         autoFocus
-                                                        className="w-full px-3 py-2 bg-slate-700 border border-gray-600 rounded-lg text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                                        className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                                                     />
                                                     <input
                                                         type="text"
                                                         value={newListDescription}
                                                         onChange={(e) => setNewListDescription(e.target.value)}
                                                         placeholder="Description (optional)"
-                                                        className="w-full px-3 py-2 bg-slate-700 border border-gray-600 rounded-lg text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                                        className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                                                     />
                                                     <label className="flex items-center gap-2 cursor-pointer">
                                                         <input
@@ -1220,7 +1527,7 @@ export default function Profile() {
                                                         <button
                                                             type="submit"
                                                             disabled={isCreatingList}
-                                                            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-60"
+                                                            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-600/90 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-60"
                                                         >
                                                             {isCreatingList ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
                                                             {isCreatingList ? 'Creating...' : 'Create'}
@@ -1228,7 +1535,7 @@ export default function Profile() {
                                                         <button
                                                             type="button"
                                                             onClick={() => { setShowCreateListForm(false); setCreateListError(''); }}
-                                                            className="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-gray-300 rounded-lg text-sm transition-colors"
+                                                            className="px-4 py-2 bg-gray-800 hover:bg-gray-500 text-gray-300 rounded-lg text-sm transition-colors"
                                                         >
                                                             Cancel
                                                         </button>
@@ -1242,13 +1549,13 @@ export default function Profile() {
                                                     <span className="text-sm">Loading lists...</span>
                                                 </div>
                                             ) : userLists.length === 0 ? (
-                                                <div className="text-center py-12 bg-slate-700/20 rounded-lg border-2 border-dashed border-gray-600">
+                                                <div className="text-center py-12 bg-gray-800/20 rounded-lg border-2 border-dashed border-gray-700">
                                                     <List size={48} className="text-gray-600 mx-auto mb-4" />
                                                     <h4 className="text-white font-semibold mb-2">No lists yet</h4>
                                                     <p className="text-gray-400 text-sm mb-4">Create a list to organize your movies and TV shows</p>
                                                     <button
                                                         onClick={() => { setShowCreateListForm(true); setCreateListError(''); }}
-                                                        className="flex items-center gap-2 mx-auto px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-medium transition-colors"
+                                                        className="flex items-center gap-2 mx-auto px-4 py-2 bg-purple-600 hover:bg-purple-600/90 text-white rounded-lg text-sm font-medium transition-colors"
                                                     >
                                                         <Plus size={16} />
                                                         Create Your First List
@@ -1259,17 +1566,17 @@ export default function Profile() {
                                                     {userLists.map((list) => (
                                                         <div
                                                             key={list.id}
-                                                            className="flex items-center gap-3 p-4 bg-slate-700/30 rounded-xl border border-gray-700 hover:border-purple-500/50 hover:bg-slate-700/50 transition-all group"
+                                                            className="flex items-center gap-3 p-4 bg-gray-800/30 rounded-xl border border-gray-700 hover:border-purple-600/50 hover:bg-gray-800/50 transition-all group"
                                                         >
                                                             <button
                                                                 onClick={() => handleViewList(list)}
                                                                 className="flex-1 text-left"
                                                             >
                                                                 <div className="flex items-center gap-2 mb-1">
-                                                                    <List size={16} className="text-purple-400 flex-shrink-0" />
+                                                                    <List size={16} className="text-purple-600 flex-shrink-0" />
                                                                     <h4 className="text-white font-semibold text-sm truncate">{list.name}</h4>
                                                                     {list.isPublic && (
-                                                                        <span className="text-xs px-1.5 py-0.5 bg-blue-500/20 text-blue-400 rounded">Public</span>
+                                                                        <span className="text-xs px-1.5 py-0.5 bg-purple-600/20 text-purple-600 rounded">Public</span>
                                                                     )}
                                                                 </div>
                                                                 {list.description && (
@@ -1297,7 +1604,7 @@ export default function Profile() {
 
                             {/* Likes Tab */}
                             {activeTab === "likes" && (
-                                <div className="text-center py-12">
+                                <div className="bg-gray-900 border border-gray-700 p-12 text-center">
                                     <Heart size={48} className="text-gray-600 mx-auto mb-4" />
                                     <h3 className="text-xl font-semibold text-white mb-2">Your Likes</h3>
                                     <p className="text-gray-400">Items you liked will appear here</p>
@@ -1307,6 +1614,96 @@ export default function Profile() {
                     </div>
                 </div>
             </div>
+
+            {/* Followers/Following Modal */}
+            {showFollowModal && (
+                <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4">
+                    <div className="bg-gray-900 w-full max-w-md max-h-[80vh] flex flex-col border border-gray-700">
+                        {/* Modal Header */}
+                        <div className="p-4 border-b border-gray-700 flex items-center justify-between bg-gray-800">
+                            <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                                {followModalType === 'followers' ? (
+                                    <>
+                                        <Users className="w-5 h-5 text-purple-600" />
+                                        <span>
+                                            Followers
+                                            <span className="text-gray-500 text-base ml-2">({followList.length})</span>
+                                        </span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <UserPlus className="w-5 h-5 text-purple-600" />
+                                        <span>
+                                            Following
+                                            <span className="text-gray-500 text-base ml-2">({followList.length})</span>
+                                        </span>
+                                    </>
+                                )}
+                            </h3>
+                            <button
+                                onClick={() => {
+                                    setShowFollowModal(false);
+                                    setFollowList([]);
+                                }}
+                                className="text-gray-400 hover:text-white transition-colors text-xl"
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        {/* Users List */}
+                        <div className="flex-1 overflow-y-auto p-4 scrollbar-thin scrollbar-thumb-[#1a1a1a] scrollbar-track-transparent">
+                            {isLoadingFollow ? (
+                                <div className="flex items-center justify-center py-8">
+                                    <div className="animate-spin rounded-full h-8 w-8 border-2 border-gray-700 border-t-[#f5c518]"></div>
+                                </div>
+                            ) : followList.length === 0 ? (
+                                <div className="text-center text-gray-400 py-8">
+                                    <User className="w-12 h-12 mx-auto mb-4 opacity-30" />
+                                    <p className="text-base">
+                                        {followModalType === 'followers'
+                                            ? 'No followers yet'
+                                            : 'Not following anyone yet'}
+                                    </p>
+                                </div>
+                            ) : (
+                                <div className="space-y-2">
+                                    {followList.map((followUser) => (
+                                        <div
+                                            key={followUser.id}
+                                            onClick={() => {
+                                                setShowFollowModal(false);
+                                                navigate(`/user/${followUser.id}`);
+                                            }}
+                                            className="p-3 bg-gray-800 hover:bg-gray-800 border border-gray-700 hover:border-purple-600 transition-colors flex items-center gap-3 cursor-pointer"
+                                        >
+                                            <div className="w-12 h-12 bg-gray-800 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                                                {followUser.profilePictureUrl ? (
+                                                    <img
+                                                        src={followUser.profilePictureUrl}
+                                                        alt={followUser.username}
+                                                        className="w-full h-full object-cover"
+                                                    />
+                                                ) : (
+                                                    <span className="text-white font-bold text-lg">
+                                                        {followUser.username.charAt(0).toUpperCase()}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div className="flex-1 text-left min-w-0">
+                                                <h4 className="text-white font-bold">@{followUser.username}</h4>
+                                                {followUser.bio && (
+                                                    <p className="text-sm text-gray-500 truncate">{followUser.bio}</p>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

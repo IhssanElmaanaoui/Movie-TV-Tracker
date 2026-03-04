@@ -72,7 +72,7 @@ function ReviewContent({ content }) {
             {isLong && (
                 <button
                     onClick={() => setExpanded(v => !v)}
-                    className="mt-1 text-xs text-purple-400 hover:text-purple-300 flex items-center gap-0.5 transition-colors"
+                    className="mt-1 text-xs text-purple-600 hover:text-purple-600 flex items-center gap-0.5 transition-colors"
                 >
                     {expanded ? <><ChevronUp size={11} /> Show less</> : <><ChevronDown size={11} /> Read more</>}
                 </button>
@@ -400,7 +400,7 @@ export default function SeriesDetail() {
             <div className="min-h-screen flex justify-center items-center text-white" style={{ backgroundColor: '#071427' }}>
                 <div className="text-center">
                     <h2 className="text-2xl mb-4">Series not found</h2>
-                    <button onClick={() => navigate(-1)} className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
+                    <button onClick={() => navigate(-1)} className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-600/90 transition-colors">
                         Go Back
                     </button>
                 </div>
@@ -430,7 +430,7 @@ export default function SeriesDetail() {
     ].filter((p, i, arr) => arr.findIndex(x => x.provider_id === p.provider_id) === i).slice(0, 6);
 
     const statusColor = series.status === 'Ended'
-        ? 'bg-gray-700/60 text-gray-300 border-gray-600/40'
+        ? 'bg-gray-800/60 text-gray-300 border-gray-700/40'
         : series.status === 'Returning Series'
             ? 'bg-green-500/15 text-green-400 border-green-500/30'
             : 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30';
@@ -481,7 +481,7 @@ export default function SeriesDetail() {
                                     loading="eager"
                                 />
                             ) : (
-                                <div className="w-full aspect-[2/3] rounded-lg bg-gray-800/60 flex items-center justify-center ring-1 ring-white/10">
+                                <div className="w-full aspect-[2/3] rounded-lg bg-gray-900/60 flex items-center justify-center ring-1 ring-white/10">
                                     <Tv size={24} className="text-gray-600" />
                                 </div>
                             )}
@@ -523,7 +523,7 @@ export default function SeriesDetail() {
                         <button
                             onClick={handleToggleWatched}
                             className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all ${isWatched
-                                ? 'bg-purple-600 hover:bg-purple-700 text-white'
+                                ? 'bg-purple-600 hover:bg-purple-600/90 text-white'
                                 : 'bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10'
                                 }`}
                         >
@@ -543,7 +543,7 @@ export default function SeriesDetail() {
                         <button
                             onClick={handleToggleWatchlist}
                             className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all ${isWatchlisted
-                                ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                                ? 'bg-purple-600 hover:bg-purple-600/90 text-white'
                                 : 'bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10'
                                 }`}
                         >
@@ -586,7 +586,7 @@ export default function SeriesDetail() {
                             {series.genres.map(g => (
                                 <span
                                     key={g.id}
-                                    className="px-2 py-0.5 text-xs rounded-full bg-purple-500/10 text-purple-300 border border-purple-500/25 font-medium"
+                                    className="px-2 py-0.5 text-xs rounded-full bg-purple-600/10 text-purple-600 border border-purple-600/25 font-medium"
                                 >
                                     {g.name}
                                 </span>
@@ -664,7 +664,7 @@ export default function SeriesDetail() {
                                 {series.seasons.filter(s => s.season_number > 0).length > 3 && (
                                     <button
                                         onClick={() => setShowAllSeasons(!showAllSeasons)}
-                                        className="text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1"
+                                        className="text-xs text-purple-600 hover:text-purple-600 flex items-center gap-1"
                                     >
                                         {showAllSeasons ? 'Show Less' : 'Show All'}
                                         {showAllSeasons ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
@@ -713,7 +713,7 @@ export default function SeriesDetail() {
                                                 loading="lazy"
                                             />
                                         ) : (
-                                            <div className="w-20 h-20 rounded-full bg-gray-800/60 flex items-center justify-center ring-1 ring-white/10 mb-1.5">
+                                            <div className="w-20 h-20 rounded-full bg-gray-900/60 flex items-center justify-center ring-1 ring-white/10 mb-1.5">
                                                 <User size={20} className="text-gray-600" />
                                             </div>
                                         )}
@@ -751,7 +751,7 @@ export default function SeriesDetail() {
                                                             loading="lazy"
                                                         />
                                                     ) : (
-                                                        <div className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center ring-1 ring-white/10">
+                                                        <div className="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center ring-1 ring-white/10">
                                                             <User size={14} className="text-gray-500" />
                                                         </div>
                                                     )}
@@ -792,11 +792,11 @@ export default function SeriesDetail() {
                                                 loading="lazy"
                                             />
                                         ) : (
-                                            <div className="w-full aspect-[2/3] rounded-lg bg-gray-800/60 flex items-center justify-center ring-1 ring-white/10 mb-1">
+                                            <div className="w-full aspect-[2/3] rounded-lg bg-gray-900/60 flex items-center justify-center ring-1 ring-white/10 mb-1">
                                                 <Tv size={16} className="text-gray-600" />
                                             </div>
                                         )}
-                                        <p className="text-xs text-gray-300 leading-tight line-clamp-2 group-hover:text-purple-300 transition-colors">
+                                        <p className="text-xs text-gray-300 leading-tight line-clamp-2 group-hover:text-purple-600 transition-colors">
                                             {rec.name}
                                         </p>
                                     </button>
@@ -822,7 +822,7 @@ export default function SeriesDetail() {
                                     loading="eager"
                                 />
                             ) : (
-                                <div className="w-full aspect-[2/3] rounded-xl bg-gray-800/60 flex items-center justify-center ring-1 ring-white/10">
+                                <div className="w-full aspect-[2/3] rounded-xl bg-gray-900/60 flex items-center justify-center ring-1 ring-white/10">
                                     <Tv size={36} className="text-gray-600" />
                                 </div>
                             )}
@@ -833,7 +833,7 @@ export default function SeriesDetail() {
                             <button
                                 onClick={handleToggleWatched}
                                 className={`w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${isWatched
-                                    ? 'bg-purple-600 hover:bg-purple-700 text-white shadow-lg shadow-purple-900/40'
+                                    ? 'bg-purple-600 hover:bg-purple-600/90 text-white shadow-lg shadow-purple-900/40'
                                     : 'bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10'
                                     }`}
                             >
@@ -853,7 +853,7 @@ export default function SeriesDetail() {
                             <button
                                 onClick={handleToggleWatchlist}
                                 className={`w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${isWatchlisted
-                                    ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-900/40'
+                                    ? 'bg-purple-600 hover:bg-purple-600/90 text-white shadow-lg shadow-blue-900/40'
                                     : 'bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10'
                                     }`}
                             >
@@ -918,7 +918,7 @@ export default function SeriesDetail() {
                                         href={watchProviders.link}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="mt-2 inline-flex items-center gap-1 text-[11px] text-purple-400 hover:text-purple-300 transition-colors"
+                                        className="mt-2 inline-flex items-center gap-1 text-[11px] text-purple-600 hover:text-purple-600 transition-colors"
                                     >
                                         <ExternalLink size={9} /> All options
                                     </a>
@@ -984,7 +984,7 @@ export default function SeriesDetail() {
                                         <span
                                             key={g.id}
                                             role="listitem"
-                                            className="px-2.5 py-0.5 text-xs rounded-full bg-purple-500/10 text-purple-300 border border-purple-500/25 font-medium"
+                                            className="px-2.5 py-0.5 text-xs rounded-full bg-purple-600/10 text-purple-600 border border-purple-600/25 font-medium"
                                         >
                                             {g.name}
                                         </span>
@@ -1079,7 +1079,7 @@ export default function SeriesDetail() {
                                                     loading="lazy"
                                                 />
                                             ) : (
-                                                <div className="w-10 h-14 rounded-lg bg-gray-800/60 flex items-center justify-center flex-shrink-0 ring-1 ring-white/10">
+                                                <div className="w-10 h-14 rounded-lg bg-gray-900/60 flex items-center justify-center flex-shrink-0 ring-1 ring-white/10">
                                                     <Tv size={14} className="text-gray-600" />
                                                 </div>
                                             )}
@@ -1101,7 +1101,7 @@ export default function SeriesDetail() {
                                 {mainSeasons.length > 4 && (
                                     <button
                                         onClick={() => setShowAllSeasons(v => !v)}
-                                        className="mt-2 text-xs text-purple-400 hover:text-purple-300 flex items-center gap-0.5 transition-colors"
+                                        className="mt-2 text-xs text-purple-600 hover:text-purple-600 flex items-center gap-0.5 transition-colors"
                                     >
                                         {showAllSeasons
                                             ? <><ChevronUp size={11} /> Show fewer</>
@@ -1131,7 +1131,7 @@ export default function SeriesDetail() {
                                                     loading="lazy"
                                                 />
                                             ) : (
-                                                <div className="w-full aspect-[2/3] rounded-lg bg-gray-800/60 flex items-center justify-center ring-1 ring-white/10">
+                                                <div className="w-full aspect-[2/3] rounded-lg bg-gray-900/60 flex items-center justify-center ring-1 ring-white/10">
                                                     <User size={18} className="text-gray-600" />
                                                 </div>
                                             )}
@@ -1177,7 +1177,7 @@ export default function SeriesDetail() {
                                                                     loading="lazy"
                                                                 />
                                                             ) : (
-                                                                <div className="w-8 h-8 rounded-full bg-purple-600/25 flex items-center justify-center text-purple-300 text-xs font-bold ring-1 ring-purple-500/25 flex-shrink-0">
+                                                                <div className="w-8 h-8 rounded-full bg-purple-600/25 flex items-center justify-center text-purple-600 text-xs font-bold ring-1 ring-purple-500/25 flex-shrink-0">
                                                                     {review.author?.[0]?.toUpperCase()}
                                                                 </div>
                                                             )}
@@ -1205,7 +1205,7 @@ export default function SeriesDetail() {
                                     {reviews.length > 3 && (
                                         <button
                                             onClick={() => setShowAllReviews(!showAllReviews)}
-                                            className="mt-4 px-4 py-2 text-sm font-medium text-purple-400 hover:text-purple-300 bg-white/5 hover:bg-white/10 rounded-lg border border-white/10 transition-all"
+                                            className="mt-4 px-4 py-2 text-sm font-medium text-purple-600 hover:text-purple-600 bg-white/5 hover:bg-white/10 rounded-lg border border-white/10 transition-all"
                                         >
                                             {showAllReviews ? 'Show Less' : `Show More Reviews (${reviews.length - 3})`}
                                         </button>
@@ -1246,7 +1246,7 @@ export default function SeriesDetail() {
                                                         loading="lazy"
                                                     />
                                                 ) : (
-                                                    <div className="w-full aspect-[2/3] rounded-lg bg-gray-800/60 flex items-center justify-center ring-1 ring-white/10">
+                                                    <div className="w-full aspect-[2/3] rounded-lg bg-gray-900/60 flex items-center justify-center ring-1 ring-white/10">
                                                         <Tv size={16} className="text-gray-600" />
                                                     </div>
                                                 )}

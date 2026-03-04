@@ -52,7 +52,7 @@ export default function StreamingPlatforms({ onLoadComplete }) {
   ];
 
   return (
-    <div className="w-full bg-black border-b border-gray-800 py-5 overflow-hidden flex-shrink-0">
+    <div className="w-full bg-black border-b border-gray-700 py-5 overflow-hidden flex-shrink-0">
       <div className="logo-carousel-container">
         <div className="logo-carousel-track">
           {/* First set of logos */}

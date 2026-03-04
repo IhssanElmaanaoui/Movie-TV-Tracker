@@ -138,7 +138,7 @@ export default function Collections() {
                             className="cursor-pointer group"
                         >
                             {/* Collection Poster */}
-                            <div className="relative overflow-hidden rounded-lg mb-3 aspect-[2/3] bg-slate-800">
+                            <div className="relative overflow-hidden rounded-lg mb-3 aspect-[2/3] bg-gray-900">
                                 <img
                                     src={`${IMAGE_BASE_URL}${collection.poster}`}
                                     alt={collection.name}
@@ -167,8 +167,8 @@ export default function Collections() {
                             onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
                             disabled={currentPage === 1}
                             className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${currentPage === 1
-                                ? "bg-gray-700 text-gray-500 cursor-not-allowed"
-                                : "bg-blue-600 hover:bg-blue-700 text-white"
+                                ? "bg-gray-800 text-gray-500 cursor-not-allowed"
+                                : "bg-purple-600 hover:bg-purple-600/90 text-white"
                                 }`}
                         >
                             <ChevronLeft size={20} />
@@ -181,7 +181,7 @@ export default function Collections() {
                                     key={page}
                                     onClick={() => setCurrentPage(page)}
                                     className={`w-10 h-10 rounded-lg transition-colors ${currentPage === page
-                                        ? "bg-blue-600 text-white"
+                                        ? "bg-purple-600 text-white"
                                         : "bg-white/10 hover:bg-white/20 text-white"
                                         }`}
                                 >
@@ -194,8 +194,8 @@ export default function Collections() {
                             onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
                             disabled={currentPage === totalPages}
                             className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${currentPage === totalPages
-                                ? "bg-gray-700 text-gray-500 cursor-not-allowed"
-                                : "bg-blue-600 hover:bg-blue-700 text-white"
+                                ? "bg-gray-800 text-gray-500 cursor-not-allowed"
+                                : "bg-purple-600 hover:bg-purple-600/90 text-white"
                                 }`}
                         >
                             Next

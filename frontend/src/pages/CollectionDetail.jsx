@@ -122,7 +122,7 @@ export default function CollectionDetail() {
                             onClick={() => navigate(`/movie/${movie.id}`)}
                         >
                             {/* Movie Poster */}
-                            <div className="relative overflow-hidden rounded-lg mb-3 aspect-[2/3] bg-slate-800">
+                            <div className="relative overflow-hidden rounded-lg mb-3 aspect-[2/3] bg-gray-900">
                                 {movie.poster_path ? (
                                     <img
                                         src={`${IMAGE_BASE_URL}${movie.poster_path}`}
