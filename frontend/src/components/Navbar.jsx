@@ -607,7 +607,7 @@ export default function Navbar({ onSignUpClick }) {
                     navigate("/profile");
                     setProfileOpen(false);
                   } else {
-                    setProfileOpen(!profileOpen);
+                    navigate("/login");
                   }
                 }}
                 className="w-10 h-10 flex items-center justify-center
@@ -616,28 +616,6 @@ export default function Navbar({ onSignUpClick }) {
                 <UserCircle className="text-gray-300" size={28} />
               </button>
 
-              {/* Profile Dropdown - Only show if not authenticated */}
-              {profileOpen && !userStorage.isAuthenticated() && (
-                <div
-                  className="absolute left-1/2 -translate-x-1/2 top-14 w-44
-                bg-gray-900/90 backdrop-blur-md
-                rounded-xl shadow-lg border border-gray-700 overflow-hidden"
-                >
-                  <button
-                    onClick={() => navigate("/login")}
-                    className="w-full text-left px-4 py-2 text-gray-300 hover:bg-gray-800"
-                  >
-                    Login
-                  </button>
-
-                  <button
-                    onClick={() => navigate("/signup")}
-                    className="w-full text-left px-4 py-2 text-gray-300 hover:bg-gray-800"
-                  >
-                    Sign Up
-                  </button>
-                </div>
-              )}
             </div>
           </div>
         </div>

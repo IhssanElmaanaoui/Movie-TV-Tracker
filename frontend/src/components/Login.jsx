@@ -3,37 +3,47 @@ import { useNavigate } from 'react-router-dom';
 import { authService, userStorage } from '../services/authService';
 import './Login.css';
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function validateEmail(value) {
+  if (!value.trim()) return 'Email is required';
+  if (!EMAIL_REGEX.test(value.trim())) return 'Please enter a valid email address';
+  return '';
+}
+
+function validatePassword(value) {
+  if (!value) return 'Password is required';
+  return '';
+}
+
 export default function Login() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [touched, setTouched] = useState({ email: false, password: false });
 
-  // Check if form fields are filled
-  const isFormValid = email.trim() && password.trim();
+  const isFormValid = email.trim() && password.trim() && !validateEmail(email) && !validatePassword(password);
+
+  const handleBlur = (field) => {
+    setTouched(prev => ({ ...prev, [field]: true }));
+    if (field === 'email') setEmailError(validateEmail(email));
+    if (field === 'password') setPasswordError(validatePassword(password));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
-    // Validation
-    if (!email.trim()) {
-      setError('Email is required');
-      return;
-    }
-
-    if (!password.trim()) {
-      setError('Password is required');
-      return;
-    }
-
-    // Email validation regex
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      setError('Please enter a valid email address');
-      return;
-    }
+    const eErr = validateEmail(email);
+    const pErr = validatePassword(password);
+    setEmailError(eErr);
+    setPasswordError(pErr);
+    setTouched({ email: true, password: true });
+    if (eErr || pErr) return;
 
     // Handle login with API call
     setIsLoading(true);
@@ -82,11 +92,16 @@ export default function Login() {
               <input
                 id="email"
                 type="email"
-                className="form-input"
+                className={`form-input${touched.email && emailError ? ' input-error' : ''}`}
                 placeholder="Enter your email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (touched.email) setEmailError(validateEmail(e.target.value));
+                }}
+                onBlur={() => handleBlur('email')}
               />
+              {touched.email && emailError && <span className="field-error">{emailError}</span>}
             </div>
 
             <div className="form-group">
@@ -96,11 +111,16 @@ export default function Login() {
               <input
                 id="password"
                 type="password"
-                className="form-input"
+                className={`form-input${touched.password && passwordError ? ' input-error' : ''}`}
                 placeholder="Enter your password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (touched.password) setPasswordError(validatePassword(e.target.value));
+                }}
+                onBlur={() => handleBlur('password')}
               />
+              {touched.password && passwordError && <span className="field-error">{passwordError}</span>}
             </div>
 
             <button

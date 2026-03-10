@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { RingLoader } from 'react-spinners';
+import Skeleton from '@mui/material/Skeleton';
 import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 
 const TMDB_BEARER_TOKEN = import.meta.env.VITE_TMDB_BEARER_TOKEN || "YOUR_TOKEN_HERE";
@@ -130,10 +130,55 @@ export default function GenrePage() {
     if (loading) {
         return (
             <div
-                className="min-h-screen flex justify-center items-center"
+                className="min-h-screen text-white pt-32 pb-12"
                 style={{ backgroundColor: "#071427" }}
             >
-                <RingLoader color="#361087" />
+                <div className="max-w-7xl mx-auto px-6 md:px-12">
+                    {/* Header Skeleton */}
+                    <div className="flex items-center gap-4 mb-8">
+                        <Skeleton
+                            variant="circular"
+                            width={56}
+                            height={56}
+                            sx={{ bgcolor: 'rgba(255, 255, 255, 0.1)' }}
+                        />
+                        <Skeleton
+                            variant="text"
+                            width={200}
+                            height={60}
+                            sx={{ bgcolor: 'rgba(255, 255, 255, 0.1)' }}
+                        />
+                    </div>
+
+                    {/* Content Grid Skeleton */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                        {[...Array(15)].map((_, index) => (
+                            <div key={index} className="space-y-3">
+                                <Skeleton
+                                    variant="rectangular"
+                                    width="100%"
+                                    sx={{
+                                        bgcolor: 'rgba(255, 255, 255, 0.1)',
+                                        borderRadius: '8px',
+                                        aspectRatio: '2/3'
+                                    }}
+                                />
+                                <Skeleton
+                                    variant="text"
+                                    width="80%"
+                                    height={24}
+                                    sx={{ bgcolor: 'rgba(255, 255, 255, 0.1)' }}
+                                />
+                                <Skeleton
+                                    variant="text"
+                                    width="60%"
+                                    height={20}
+                                    sx={{ bgcolor: 'rgba(255, 255, 255, 0.1)' }}
+                                />
+                            </div>
+                        ))}
+                    </div>
+                </div>
             </div>
         );
     }
@@ -178,8 +223,8 @@ export default function GenrePage() {
                         <button
                             onClick={() => setSelectedType("movie")}
                             className={`px-6 py-2 rounded-2xl text-sm font-medium transition-all duration-200 ${selectedType === "movie"
-                                    ? "bg-purple-600 text-white shadow-lg"
-                                    : "text-gray-300 hover:text-white hover:bg-white/10"
+                                ? "bg-purple-600 text-white shadow-lg"
+                                : "text-gray-300 hover:text-white hover:bg-white/10"
                                 }`}
                         >
                             Movies
@@ -187,8 +232,8 @@ export default function GenrePage() {
                         <button
                             onClick={() => setSelectedType("tv")}
                             className={`px-6 py-2 rounded-2xl text-sm font-medium transition-all duration-200 ${selectedType === "tv"
-                                    ? "bg-purple-600 text-white shadow-lg"
-                                    : "text-gray-300 hover:text-white hover:bg-white/10"
+                                ? "bg-purple-600 text-white shadow-lg"
+                                : "text-gray-300 hover:text-white hover:bg-white/10"
                                 }`}
                         >
                             Series

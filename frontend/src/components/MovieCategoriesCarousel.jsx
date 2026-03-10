@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import Skeleton from '@mui/material/Skeleton';
 
 const GENRE_MAP = {
   28: "Action",
@@ -128,7 +129,101 @@ export default function MovieCategoriesCarousel({ onLoadComplete }) {
   };
 
   if (loading || categories.length === 0) {
-    return <div style={{ minHeight: '400px' }}></div>;
+    return (
+      <div style={{ backgroundColor: "#071427" }}>
+        {CATEGORIES.map((category, catIndex) => (
+          <section key={catIndex} className="max-w-6xl mx-auto px-6 py-12">
+            {/* Title Skeleton */}
+            <div className="mb-6">
+              <Skeleton
+                variant="text"
+                width={200}
+                height={40}
+                sx={{ bgcolor: 'rgba(255, 255, 255, 0.1)' }}
+              />
+            </div>
+
+            {/* Carousel Skeleton */}
+            <div className="flex gap-6 overflow-hidden pb-4">
+              {Array.from({ length: 6 }).map((_, index) =>
+                catIndex === 2 ? ( // Top Rated style
+                  <div
+                    key={index}
+                    className="flex items-center flex-shrink-0"
+                    style={{ width: isMobile ? "240px" : "320px" }}
+                  >
+                    {/* Number skeleton */}
+                    <Skeleton
+                      variant="text"
+                      width={60}
+                      height={100}
+                      sx={{ bgcolor: 'rgba(255, 255, 255, 0.1)', marginRight: '15px' }}
+                    />
+
+                    {/* Poster skeleton */}
+                    <Skeleton
+                      variant="rectangular"
+                      width={110}
+                      height={160}
+                      sx={{ bgcolor: 'rgba(255, 255, 255, 0.1)', borderRadius: '8px' }}
+                    />
+
+                    {/* Info skeleton */}
+                    <div className="ml-3 flex flex-col gap-2">
+                      <Skeleton
+                        variant="text"
+                        width={100}
+                        height={20}
+                        sx={{ bgcolor: 'rgba(255, 255, 255, 0.1)' }}
+                      />
+                      <Skeleton
+                        variant="text"
+                        width={60}
+                        height={20}
+                        sx={{ bgcolor: 'rgba(255, 255, 255, 0.1)' }}
+                      />
+                      <Skeleton
+                        variant="text"
+                        width={80}
+                        height={20}
+                        sx={{ bgcolor: 'rgba(255, 255, 255, 0.1)' }}
+                      />
+                    </div>
+                  </div>
+                ) : ( // Normal style
+                  <div
+                    key={index}
+                    className="flex-shrink-0"
+                    style={{ width: isMobile ? "180px" : "200px" }}
+                  >
+                    <Skeleton
+                      variant="rectangular"
+                      width={isMobile ? 180 : 200}
+                      height={280}
+                      sx={{ bgcolor: 'rgba(255, 255, 255, 0.1)', borderRadius: '12px' }}
+                    />
+                    <div className="mt-2 flex flex-col gap-1">
+                      <Skeleton
+                        variant="text"
+                        width="100%"
+                        height={20}
+                        sx={{ bgcolor: 'rgba(255, 255, 255, 0.1)' }}
+                      />
+                      <Skeleton
+                        variant="text"
+                        width="60%"
+                        height={16}
+                        sx={{ bgcolor: 'rgba(255, 255, 255, 0.1)' }}
+                      />
+                    </div>
+                  </div>
+                )
+              )}
+            </div>
+          </section>
+        ))}
+      </div>
+    );
   }
 
   return (

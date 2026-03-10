@@ -5,7 +5,7 @@ import {
     Eye, ExternalLink, MessageSquare, ChevronDown, ChevronUp,
     Globe, Building2, User, Users
 } from 'lucide-react';
-import { RingLoader } from 'react-spinners';
+import Skeleton from '@mui/material/Skeleton';
 import { likesService, watchlistService, watchedService } from '../services/contentService';
 import { userStorage } from '../services/authService';
 import { ratingService } from '../services/ratingService';
@@ -389,8 +389,94 @@ export default function SeriesDetail() {
 
     if (loading) {
         return (
-            <div className="min-h-screen flex justify-center items-center" style={{ backgroundColor: '#071427' }}>
-                <RingLoader color="#7C3AED" />
+            <div className="min-h-screen" style={{ backgroundColor: '#071427' }}>
+                {/* Backdrop Skeleton */}
+                <div className="relative h-[400px]">
+                    <Skeleton
+                        variant="rectangular"
+                        width="100%"
+                        height="100%"
+                        sx={{ bgcolor: 'rgba(255, 255, 255, 0.05)' }}
+                    />
+                </div>
+
+                <div className="max-w-6xl mx-auto px-6 py-8">
+                    {/* Title and Info */}
+                    <div className="mb-6">
+                        <Skeleton
+                            variant="text"
+                            width="60%"
+                            height={60}
+                            sx={{ bgcolor: 'rgba(255, 255, 255, 0.1)' }}
+                        />
+                        <Skeleton
+                            variant="text"
+                            width="40%"
+                            height={30}
+                            sx={{ bgcolor: 'rgba(255, 255, 255, 0.1)', mt: 2 }}
+                        />
+                    </div>
+
+                    {/* Action buttons skeleton */}
+                    <div className="flex gap-3 mb-8">
+                        {[...Array(4)].map((_, i) => (
+                            <Skeleton
+                                key={i}
+                                variant="circular"
+                                width={48}
+                                height={48}
+                                sx={{ bgcolor: 'rgba(255, 255, 255, 0.1)' }}
+                            />
+                        ))}
+                    </div>
+
+                    {/* Overview skeleton */}
+                    <div className="mb-8">
+                        <Skeleton
+                            variant="text"
+                            width="25%"
+                            height={40}
+                            sx={{ bgcolor: 'rgba(255, 255, 255, 0.1)', mb: 2 }}
+                        />
+                        {[...Array(4)].map((_, i) => (
+                            <Skeleton
+                                key={i}
+                                variant="text"
+                                width="100%"
+                                height={24}
+                                sx={{ bgcolor: 'rgba(255, 255, 255, 0.1)', mb: 1 }}
+                            />
+                        ))}
+                    </div>
+
+                    {/* Cast skeleton */}
+                    <div className="mb-8">
+                        <Skeleton
+                            variant="text"
+                            width="15%"
+                            height={40}
+                            sx={{ bgcolor: 'rgba(255, 255, 255, 0.1)', mb: 2 }}
+                        />
+                        <div className="flex gap-4 overflow-hidden">
+                            {[...Array(6)].map((_, i) => (
+                                <div key={i} className="flex-shrink-0">
+                                    <Skeleton
+                                        variant="circular"
+                                        width={80}
+                                        height={80}
+                                        sx={{ bgcolor: 'rgba(255, 255, 255, 0.1)' }}
+                                    />
+                                    <Skeleton
+                                        variant="text"
+                                        width={80}
+                                        height={20}
+                                        sx={{ bgcolor: 'rgba(255, 255, 255, 0.1)', mt: 1 }}
+                                    />
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
             </div>
         );
     }

@@ -5,6 +5,7 @@
   min-height: 100vh;
   background: #0a0e27;
   padding: 1rem;
+  padding-top: 70px;
   position: relative;
   overflow: hidden;
 }
@@ -48,6 +49,7 @@
     opacity: 0;
     transform: translateY(20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -60,21 +62,25 @@
     left: -100px;
     opacity: 0.5;
   }
+
   25% {
     top: -50px;
     left: 50px;
     opacity: 0.6;
   }
+
   50% {
     top: 100px;
     left: 150px;
     opacity: 0.7;
   }
+
   75% {
     top: 50px;
     left: 0px;
     opacity: 0.6;
   }
+
   100% {
     top: -100px;
     left: -100px;
@@ -88,40 +94,29 @@
     right: -150px;
     opacity: 0.4;
   }
+
   25% {
     bottom: -100px;
     right: -50px;
     opacity: 0.5;
   }
+
   50% {
     bottom: 50px;
     right: 50px;
     opacity: 0.6;
   }
+
   75% {
     bottom: -50px;
     right: -100px;
     opacity: 0.5;
   }
+
   100% {
     bottom: -150px;
     right: -150px;
     opacity: 0.4;
-  }
-}
-
-@keyframes gradient-animation-3 {
-  0% {
-    transform: translate(0, 0) scale(1);
-    opacity: 0.3;
-  }
-  50% {
-    transform: translate(100px, 100px) scale(1.2);
-    opacity: 0.5;
-  }
-  100% {
-    transform: translate(0, 0) scale(1);
-    opacity: 0.3;
   }
 }
 
@@ -138,12 +133,6 @@
 .login-card:hover {
   border-color: rgba(148, 163, 184, 0.4);
   box-shadow: 0 25px 35px -5px rgba(6, 182, 212, 0.2);
-}
-
-.login-header {
-  display: flex;
-  justify-content: flex-start;
-  margin-bottom: 1.5rem;
 }
 
 .login-title {
@@ -211,39 +200,19 @@
   box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.1);
 }
 
-.go-back-button {
-  background: rgba(148, 163, 184, 0.1);
-  border: 1px solid rgba(148, 163, 184, 0.3);
-  color: #cbd5e1;
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  font-size: 0.9rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+.form-input.input-error {
+  border-color: #ef4444;
 }
 
-.go-back-bottom {
-  position: absolute;
-  bottom: 2rem;
-  left: 0;
-  width: 100%;
-  text-align: center;
-  /* remove margin-top since it's positioned at bottom */
+.form-input.input-error:focus {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
 }
 
-.go-back-button:hover {
-  background: rgba(148, 163, 184, 0.2);
-  border-color: rgba(148, 163, 184, 0.5);
-  color: #e2e8f0;
-  transform: translateX(-2px);
-}
-
-.go-back-button:active {
-  transform: translateX(0);
+.field-error {
+  color: #fca5a5;
+  font-size: 0.85rem;
+  margin-top: 0.35rem;
 }
 
 .login-button {
@@ -311,14 +280,5 @@
 
   .login-title {
     font-size: 1.75rem;
-  }
-
-  .login-subtitle {
-    font-size: 0.9rem;
-  }
-
-  .form-input,
-  .login-button {
-    font-size: 16px; /* Prevents zoom on mobile */
   }
 }

@@ -1,8 +1,7 @@
-import axios from 'axios';
+import api from './api';
 import SockJS from 'sockjs-client';
 import { Stomp } from '@stomp/stompjs';
 
-const API_BASE_URL = 'http://localhost:8080/api';
 const WS_BASE_URL = 'http://localhost:8080/ws';
 
 // Get the logged-in user from localStorage
@@ -165,7 +164,7 @@ const communityService = {
                 params.append('userId', user.id);
             }
 
-            const response = await axios.get(`${API_BASE_URL}/community/topics?${params}`);
+            const response = await api.get(`/community/topics?${params}`);
             return { success: true, data: response.data };
         } catch (error) {
             console.error('Error fetching topics:', error);
@@ -179,7 +178,7 @@ const communityService = {
             const user = getUser();
             const params = user && user.id ? `?userId=${user.id}` : '';
 
-            const response = await axios.get(`${API_BASE_URL}/community/topics/${topicId}${params}`);
+            const response = await api.get(`/community/topics/${topicId}${params}`);
             return { success: true, data: response.data };
         } catch (error) {
             console.error('Error fetching topic:', error);
@@ -198,11 +197,7 @@ const communityService = {
             console.log('Creating topic with data:', topicData);
             console.log('User ID:', user.id);
 
-            const response = await axios.post(`${API_BASE_URL}/community/topics?userId=${user.id}`, topicData, {
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            });
+            const response = await api.post(`/community/topics?userId=${user.id}`, topicData);
             return { success: true, data: response.data };
         } catch (error) {
             console.error('Error creating topic:', error);
@@ -218,7 +213,7 @@ const communityService = {
     // Get replies for a topic
     getReplies: async (topicId, page = 0, size = 50) => {
         try {
-            const response = await axios.get(`${API_BASE_URL}/community/topics/${topicId}/replies?page=${page}&size=${size}`);
+            const response = await api.get(`/community/topics/${topicId}/replies?page=${page}&size=${size}`);
             return { success: true, data: response.data };
         } catch (error) {
             console.error('Error fetching replies:', error);
@@ -239,15 +234,7 @@ const communityService = {
                 requestBody.parentReplyId = parentReplyId;
             }
 
-            const response = await axios.post(
-                `${API_BASE_URL}/community/topics/${topicId}/replies?userId=${user.id}`,
-                requestBody,
-                {
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                }
-            );
+            const response = await api.post(`/community/topics/${topicId}/replies?userId=${user.id}`, requestBody);
             return { success: true, data: response.data };
         } catch (error) {
             console.error('Error creating reply:', error);
@@ -263,7 +250,7 @@ const communityService = {
                 throw new Error('User not authenticated');
             }
 
-            const response = await axios.post(`${API_BASE_URL}/community/topics/${topicId}/upvote?userId=${user.id}`);
+            const response = await api.post(`/community/topics/${topicId}/upvote?userId=${user.id}`);
             return { success: true, data: response.data };
         } catch (error) {
             console.error('Error toggling upvote:', error);
@@ -323,7 +310,7 @@ const communityService = {
     // Get category stats
     getCategoryStats: async () => {
         try {
-            const response = await axios.get(`${API_BASE_URL}/community/categories/stats`);
+            const response = await api.get('/community/categories/stats');
             return { success: true, data: response.data };
         } catch (error) {
             console.error('Error fetching category stats:', error);
@@ -345,7 +332,7 @@ const communityService = {
                 params.append('userId', user.id);
             }
 
-            const response = await axios.get(`${API_BASE_URL}/community/search?${params}`);
+            const response = await api.get(`/community/search?${params}`);
             return { success: true, data: response.data };
         } catch (error) {
             console.error('Error searching topics:', error);
@@ -361,7 +348,7 @@ const communityService = {
                 throw new Error('User not authenticated');
             }
 
-            await axios.delete(`${API_BASE_URL}/community/topics/${topicId}?userId=${user.id}`);
+            await api.delete(`/community/topics/${topicId}?userId=${user.id}`);
             return { success: true };
         } catch (error) {
             console.error('Error deleting topic:', error);
@@ -377,7 +364,7 @@ const communityService = {
                 throw new Error('User not authenticated');
             }
 
-            await axios.delete(`${API_BASE_URL}/community/replies/${replyId}?userId=${user.id}`);
+            await api.delete(`/community/replies/${replyId}?userId=${user.id}`);
             return { success: true };
         } catch (error) {
             console.error('Error deleting reply:', error);

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { RingLoader } from "react-spinners";
+import Skeleton from '@mui/material/Skeleton';
 
 export default function SearchResults() {
   const [results, setResults] = useState([]);
@@ -90,13 +90,65 @@ export default function SearchResults() {
 
   return (
     <>
-      {/* Loading Overlay */}
+      {/* Loading Skeleton */}
       {loading && (
         <div
-          className="fixed inset-0 z-50 flex justify-center items-center"
+          className="fixed inset-0 z-50 px-6 pt-28"
           style={{ backgroundColor: "#0a1220" }}
         >
-          <RingLoader color="#361087" />
+          <div className="max-w-5xl mx-auto">
+            {/* Title Skeleton */}
+            <Skeleton
+              variant="text"
+              width={300}
+              height={40}
+              sx={{ bgcolor: 'rgba(255, 255, 255, 0.1)', mb: 4 }}
+            />
+
+            {/* Results List Skeleton */}
+            <div className="space-y-6">
+              {[...Array(6)].map((_, index) => (
+                <div key={index} className="flex gap-6">
+                  <Skeleton
+                    variant="rectangular"
+                    width={120}
+                    height={180}
+                    sx={{
+                      bgcolor: 'rgba(255, 255, 255, 0.1)',
+                      borderRadius: '8px',
+                      flexShrink: 0
+                    }}
+                  />
+                  <div className="flex-1 space-y-3">
+                    <Skeleton
+                      variant="text"
+                      width="60%"
+                      height={32}
+                      sx={{ bgcolor: 'rgba(255, 255, 255, 0.1)' }}
+                    />
+                    <Skeleton
+                      variant="text"
+                      width="40%"
+                      height={24}
+                      sx={{ bgcolor: 'rgba(255, 255, 255, 0.1)' }}
+                    />
+                    <Skeleton
+                      variant="text"
+                      width="100%"
+                      height={20}
+                      sx={{ bgcolor: 'rgba(255, 255, 255, 0.1)' }}
+                    />
+                    <Skeleton
+                      variant="text"
+                      width="90%"
+                      height={20}
+                      sx={{ bgcolor: 'rgba(255, 255, 255, 0.1)' }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 

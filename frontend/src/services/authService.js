@@ -1,15 +1,4 @@
-import axios from 'axios';
-
-const API_BASE_URL = 'http://localhost:8080/api';
-
-// Create axios instance with default config
-const api = axios.create({
-    baseURL: API_BASE_URL,
-    headers: {
-        'Content-Type': 'application/json',
-    },
-    withCredentials: true,
-});
+import api from './api';
 
 // Authentication Service
 export const authService = {
@@ -150,5 +139,3 @@ export const userStorage = {
         return localStorage.getItem('user') !== null;
     },
 };
-
-export default api;

@@ -3,6 +3,29 @@ import { useNavigate } from "react-router-dom";
 import { authService, userStorage } from "../services/authService";
 import "./SignUp.css";
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const USERNAME_REGEX = /^[a-zA-Z0-9_]+$/;
+
+function validateEmail(value) {
+  if (!value.trim()) return 'Email is required';
+  if (!EMAIL_REGEX.test(value.trim())) return 'Please enter a valid email address';
+  return '';
+}
+
+function validatePassword(value) {
+  if (!value) return 'Password is required';
+  if (value.length < 8) return 'Password must be at least 8 characters';
+  if (!/[a-zA-Z]/.test(value)) return 'Password must contain at least one letter';
+  if (!/[0-9]/.test(value)) return 'Password must contain at least one number';
+  return '';
+}
+
+function validateConfirmPassword(value, password) {
+  if (!value) return 'Please confirm your password';
+  if (value !== password) return 'Passwords do not match';
+  return '';
+}
+
 export default function SignUp({ onClose }) {
   const navigate = useNavigate();
 
@@ -16,6 +39,10 @@ export default function SignUp({ onClose }) {
   const [usernameError, setUsernameError] = useState("");
   const [isCheckingUsername, setIsCheckingUsername] = useState(false);
   const [usernameAvailable, setUsernameAvailable] = useState(null);
+  const [emailError, setEmailError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [confirmPasswordError, setConfirmPasswordError] = useState("");
+  const [touched, setTouched] = useState({ email: false, password: false, confirmPassword: false });
 
   // Check username availability when user types
   useEffect(() => {
@@ -23,6 +50,12 @@ export default function SignUp({ onClose }) {
       if (username.trim().length < 3) {
         setUsernameAvailable(null);
         setUsernameError("");
+        return;
+      }
+
+      if (!USERNAME_REGEX.test(username.trim())) {
+        setUsernameError("Only letters, numbers, and underscores are allowed");
+        setUsernameAvailable(false);
         return;
       }
 
@@ -64,25 +97,31 @@ export default function SignUp({ onClose }) {
     username.trim() &&
     username.trim().length >= 3 &&
     username.trim().length <= 50 &&
+    USERNAME_REGEX.test(username.trim()) &&
     usernameAvailable === true &&
     email.trim() &&
+    !validateEmail(email) &&
     password.trim() &&
+    !validatePassword(password) &&
     confirmPassword.trim() &&
-    password === confirmPassword &&
-    password.length >= 6;
+    !validateConfirmPassword(confirmPassword, password);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setSuccess("");
 
-    // Username Validation
-    if (!username.trim()) {
-      setError("Username is required");
-      return;
-    }
+    // Trigger inline errors for all fields
+    const eErr = validateEmail(email);
+    const pErr = validatePassword(password);
+    const cErr = validateConfirmPassword(confirmPassword, password);
+    setEmailError(eErr);
+    setPasswordError(pErr);
+    setConfirmPasswordError(cErr);
+    setTouched({ email: true, password: true, confirmPassword: true });
 
-    if (username.trim().length < 3) {
+    // Username Validation
+    if (!username.trim() || username.trim().length < 3) {
       setError("Username must be at least 3 characters");
       return;
     }
@@ -92,44 +131,17 @@ export default function SignUp({ onClose }) {
       return;
     }
 
+    if (!USERNAME_REGEX.test(username.trim())) {
+      setError("Username can only contain letters, numbers, and underscores");
+      return;
+    }
+
     if (usernameAvailable !== true) {
       setError("Please choose an available username");
       return;
     }
 
-    // Email Validation
-    if (!email.trim()) {
-      setError("Email is required");
-      return;
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      setError("Please enter a valid email address");
-      return;
-    }
-
-    // Password Validation
-    if (!password.trim()) {
-      setError("Password is required");
-      return;
-    }
-
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters long");
-      return;
-    }
-
-    // Confirm Password
-    if (!confirmPassword.trim()) {
-      setError("Please confirm your password");
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      setError("Passwords do not match");
-      return;
-    }
+    if (eErr || pErr || cErr) return;
 
     // Handle signup with API call
     setIsLoading(true);
@@ -153,6 +165,10 @@ export default function SignUp({ onClose }) {
         setConfirmPassword("");
         setUsernameAvailable(null);
         setUsernameError("");
+        setEmailError("");
+        setPasswordError("");
+        setConfirmPasswordError("");
+        setTouched({ email: false, password: false, confirmPassword: false });
 
         // Navigate after 1 second
         setTimeout(() => {
@@ -184,7 +200,6 @@ export default function SignUp({ onClose }) {
           <p className="signup-subtitle">Create your account</p>
 
           {error && <div className="signup-error">{error}</div>}
-
           {success && <div className="signup-success">{success}</div>}
 
           <form onSubmit={handleSubmit} className="signup-form">
@@ -225,11 +240,19 @@ export default function SignUp({ onClose }) {
               <input
                 id="email"
                 type="email"
-                className="form-input"
+                className={`form-input${touched.email && emailError ? ' input-error' : ''}`}
                 placeholder="Enter your email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (touched.email) setEmailError(validateEmail(e.target.value));
+                }}
+                onBlur={() => {
+                  setTouched(prev => ({ ...prev, email: true }));
+                  setEmailError(validateEmail(email));
+                }}
               />
+              {touched.email && emailError && <span className="field-error">{emailError}</span>}
             </div>
 
             <div className="form-group">
@@ -239,11 +262,20 @@ export default function SignUp({ onClose }) {
               <input
                 id="password"
                 type="password"
-                className="form-input"
-                placeholder="Enter your password"
+                className={`form-input${touched.password && passwordError ? ' input-error' : ''}`}
+                placeholder="Min. 8 chars, include a letter and number"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (touched.password) setPasswordError(validatePassword(e.target.value));
+                  if (touched.confirmPassword) setConfirmPasswordError(validateConfirmPassword(confirmPassword, e.target.value));
+                }}
+                onBlur={() => {
+                  setTouched(prev => ({ ...prev, password: true }));
+                  setPasswordError(validatePassword(password));
+                }}
               />
+              {touched.password && passwordError && <span className="field-error">{passwordError}</span>}
             </div>
 
             <div className="form-group">
@@ -253,11 +285,19 @@ export default function SignUp({ onClose }) {
               <input
                 id="confirmPassword"
                 type="password"
-                className="form-input"
+                className={`form-input${touched.confirmPassword && confirmPasswordError ? ' input-error' : ''}`}
                 placeholder="Confirm your password"
                 value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
+                onChange={(e) => {
+                  setConfirmPassword(e.target.value);
+                  if (touched.confirmPassword) setConfirmPasswordError(validateConfirmPassword(e.target.value, password));
+                }}
+                onBlur={() => {
+                  setTouched(prev => ({ ...prev, confirmPassword: true }));
+                  setConfirmPasswordError(validateConfirmPassword(confirmPassword, password));
+                }}
               />
+              {touched.confirmPassword && confirmPasswordError && <span className="field-error">{confirmPasswordError}</span>}
             </div>
 
             <button

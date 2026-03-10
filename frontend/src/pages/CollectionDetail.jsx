@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { RingLoader } from "react-spinners";
+import Skeleton from '@mui/material/Skeleton';
 import { ArrowLeft } from "lucide-react";
 
 const TMDB_BEARER_TOKEN = import.meta.env.VITE_TMDB_BEARER_TOKEN || "YOUR_TOKEN_HERE";
@@ -36,10 +36,57 @@ export default function CollectionDetail() {
     if (loading) {
         return (
             <div
-                className="min-h-screen flex justify-center items-center"
+                className="min-h-screen"
                 style={{ backgroundColor: "#071427" }}
             >
-                <RingLoader color="#361087" />
+                {/* Header Skeleton */}
+                <div className="relative w-full h-[400px] md:h-[500px]">
+                    <Skeleton
+                        variant="rectangular"
+                        width="100%"
+                        height="100%"
+                        sx={{ bgcolor: 'rgba(255, 255, 255, 0.05)' }}
+                    />
+                </div>
+
+                <div className="px-6 md:px-12 py-8">
+                    {/* Title Skeleton */}
+                    <Skeleton
+                        variant="text"
+                        width="50%"
+                        height={60}
+                        sx={{ bgcolor: 'rgba(255, 255, 255, 0.1)', mb: 2 }}
+                    />
+                    <Skeleton
+                        variant="text"
+                        width="30%"
+                        height={30}
+                        sx={{ bgcolor: 'rgba(255, 255, 255, 0.1)', mb: 4 }}
+                    />
+
+                    {/* Movies Grid Skeleton */}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6 mt-8">
+                        {[...Array(8)].map((_, index) => (
+                            <div key={index} className="space-y-3">
+                                <Skeleton
+                                    variant="rectangular"
+                                    width="100%"
+                                    sx={{
+                                        bgcolor: 'rgba(255, 255, 255, 0.1)',
+                                        borderRadius: '8px',
+                                        aspectRatio: '2/3'
+                                    }}
+                                />
+                                <Skeleton
+                                    variant="text"
+                                    width="80%"
+                                    height={24}
+                                    sx={{ bgcolor: 'rgba(255, 255, 255, 0.1)' }}
+                                />
+                            </div>
+                        ))}
+                    </div>
+                </div>
             </div>
         );
     }

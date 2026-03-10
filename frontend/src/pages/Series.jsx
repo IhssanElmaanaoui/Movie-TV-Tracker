@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from "react-router-dom";
-import { RingLoader } from 'react-spinners';
 import { ArrowLeft, ChevronLeft, ChevronRight, SlidersHorizontal, X, Calendar, TrendingUp, Film } from "lucide-react";
+import Skeleton from '@mui/material/Skeleton';
 import CustomDropdown from "../components/CustomDropdown";
 
 const TMDB_BEARER_TOKEN = import.meta.env.VITE_TMDB_BEARER_TOKEN || "YOUR_TOKEN_HERE";
@@ -192,10 +192,63 @@ export default function Series() {
   if (loading) {
     return (
       <div
-        className="min-h-screen flex justify-center items-center"
+        className="min-h-screen text-white pt-32 pb-12"
         style={{ backgroundColor: "#071427" }}
       >
-        <RingLoader color="#361087" />
+        <div className="max-w-7xl mx-auto px-6 md:px-12">
+          {/* Header Skeleton */}
+          <div className="flex items-center gap-4 mb-8">
+            <Skeleton
+              variant="circular"
+              width={56}
+              height={56}
+              sx={{ bgcolor: 'rgba(255, 255, 255, 0.1)' }}
+            />
+            <Skeleton
+              variant="text"
+              width={150}
+              height={60}
+              sx={{ bgcolor: 'rgba(255, 255, 255, 0.1)' }}
+            />
+          </div>
+
+          {/* Series Grid Skeleton */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+            {[...Array(15)].map((_, index) => (
+              <div key={index} className="space-y-3">
+                <Skeleton
+                  variant="rectangular"
+                  width="100%"
+                  sx={{
+                    bgcolor: 'rgba(255, 255, 255, 0.1)',
+                    borderRadius: '8px',
+                    aspectRatio: '2/3'
+                  }}
+                />
+                <Skeleton
+                  variant="text"
+                  width="80%"
+                  height={24}
+                  sx={{ bgcolor: 'rgba(255, 255, 255, 0.1)' }}
+                />
+                <div className="flex justify-between">
+                  <Skeleton
+                    variant="text"
+                    width={60}
+                    height={20}
+                    sx={{ bgcolor: 'rgba(255, 255, 255, 0.1)' }}
+                  />
+                  <Skeleton
+                    variant="text"
+                    width={40}
+                    height={20}
+                    sx={{ bgcolor: 'rgba(255, 255, 255, 0.1)' }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     );
   }

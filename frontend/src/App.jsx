@@ -17,6 +17,7 @@ import Chat from "./pages/Chat";
 import UserProfile from "./pages/UserProfile";
 import Community from "./pages/Community";
 import TopicDetail from "./pages/TopicDetail";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 
 export default function App() {
@@ -31,15 +32,15 @@ export default function App() {
         <Route path="/series" element={<Series />} />
         <Route path="/search" element={<SearchResults />} />
         <Route path="/signup" element={<SignUp />} />
-        <Route path="/collections" element={<Collections />} />
+        <Route path="/collections" element={<ProtectedRoute><Collections /></ProtectedRoute>} />
         <Route path="/collection/:id" element={<CollectionDetail />} />
         <Route path="/genre/:genre" element={<GenrePage />} />
         <Route path="/movies" element={<Movies />} />
         <Route path="/movie/:id" element={<MovieDetail />} />
         <Route path="/tv/:id" element={<SeriesDetail />} />
-        <Route path="/profile" element={<Profile />} />
+        <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
         <Route path="/user/:userId" element={<UserProfile />} />
-        <Route path="/chat" element={<Chat />} />
+        <Route path="/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
         <Route path="/community" element={<Community />} />
         <Route path="/community/topic/:topicId" element={<TopicDetail />} />
       </Routes>
