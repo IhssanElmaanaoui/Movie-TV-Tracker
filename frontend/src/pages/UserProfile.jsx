@@ -255,7 +255,7 @@ export default function UserProfile() {
     const loadReviews = async () => {
         setReviewsLoading(true);
         try {
-            const reviewsResponse = await axios.get(`http://localhost:8080/api/reviews/${userId}`);
+            const reviewsResponse = await axios.get(`http://localhost:8080/api/reviews/user/${userId}`);
             const reviewsData = reviewsResponse.data;
 
             // Fetch TMDB details for each review

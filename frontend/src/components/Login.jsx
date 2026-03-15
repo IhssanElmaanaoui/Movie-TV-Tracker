@@ -45,25 +45,24 @@ export default function Login() {
     setTouched({ email: true, password: true });
     if (eErr || pErr) return;
 
-    // Handle login with API call
     setIsLoading(true);
     try {
       const result = await authService.login({ email, password });
 
       if (result.success) {
-        // Store user data in localStorage
         userStorage.setUser(result.data);
-        console.log('Login successful:', result.data);
-
-        // Navigate back to dashboard
         navigate('/');
       } else {
-        // Handle error from API
-        if (result.error.validationErrors) {
-          const firstError = Object.values(result.error.validationErrors)[0];
-          setError(firstError);
+        // result.error can be: a string, an object with .message, or an object with .validationErrors
+        const err = result.error;
+        if (typeof err === 'string') {
+          setError(err);
+        } else if (err?.validationErrors) {
+          setError(Object.values(err.validationErrors)[0]);
+        } else if (err?.message) {
+          setError(err.message);
         } else {
-          setError(result.error.message || 'Login failed. Please try again.');
+          setError('Login failed. Please try again.');
         }
       }
     } catch (err) {
@@ -82,7 +81,15 @@ export default function Login() {
           <h1 className="login-title">Projection</h1>
           <p className="login-subtitle">Sign in to your account</p>
 
-          {error && <div className="login-error">{error}</div>}
+          {error && (
+            <div className="login-error" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              {(error.toLowerCase().includes('ban') || error.toLowerCase().includes('deactivat')) && (
+                <strong style={{ fontSize: '14px' }}>🚫 Account Banned</strong>
+              )}
+              <span>{error}</span>
+            </div>
+          )}
+
 
           <form onSubmit={handleSubmit} className="login-form">
             <div className="form-group">

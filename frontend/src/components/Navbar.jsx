@@ -427,6 +427,15 @@ export default function Navbar({ onSignUpClick }) {
                 Community
               </button>
 
+              {userStorage.isAuthenticated() && userStorage.getUser()?.role === 'ADMIN' && (
+                <button
+                  onClick={() => navigate("/admin/dashboard")}
+                  className="flex items-center gap-1.5 text-purple-400 hover:text-purple-300 transition font-semibold"
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-purple-400 inline-block"></span>
+                  Admin
+                </button>
+              )}
 
             </div>
 
@@ -501,8 +510,8 @@ export default function Navbar({ onSignUpClick }) {
             {/* ✅ Right Icons */}
             <div className="flex items-center gap-4 relative" ref={profileRef}>
 
-              {/* Connections Icon - Only show if authenticated */}
-              {userStorage.isAuthenticated() && (
+              {/* Connections Icon - Only show if authenticated AND not admin */}
+              {userStorage.isAuthenticated() && userStorage.getUser()?.role !== 'ADMIN' && (
                 <div className="relative" ref={connectionsRef}>
                   <button
                     onClick={() => {
@@ -562,7 +571,6 @@ export default function Navbar({ onSignUpClick }) {
                                   try {
                                     const res = await fetch(`http://localhost:8080/api/users/${storedUser.id}/follow/${follower.id}`, { method: 'POST' });
                                     if (res.ok || res.status === 400) {
-                                      // 400 = already following — either way mark as followed
                                       setRecentFollowers(prev => prev.map(f => f.id === follower.id ? { ...f, followedBack: true } : f));
                                     }
                                   } catch (err) { console.error('[Follow Back]', err); }
@@ -581,8 +589,8 @@ export default function Navbar({ onSignUpClick }) {
                 </div>
               )}
 
-              {/* Messages Icon - Only show if authenticated */}
-              {userStorage.isAuthenticated() && (
+              {/* Messages Icon - Only show if authenticated AND not admin */}
+              {userStorage.isAuthenticated() && userStorage.getUser()?.role !== 'ADMIN' && (
                 <div className="relative">
                   <button
                     onClick={() => navigate("/chat")}
@@ -600,23 +608,40 @@ export default function Navbar({ onSignUpClick }) {
                 </div>
               )}
 
-              {/* Profile */}
-              <button
-                onClick={() => {
-                  if (userStorage.isAuthenticated()) {
-                    navigate("/profile");
-                    setProfileOpen(false);
-                  } else {
-                    navigate("/login");
-                  }
-                }}
-                className="w-10 h-10 flex items-center justify-center
-              rounded-full border border-gray-500/50 hover:border-white mb-6"
-              >
-                <UserCircle className="text-gray-300" size={28} />
-              </button>
+              {/* Profile - Hidden for admin users */}
+              {userStorage.getUser()?.role !== 'ADMIN' && (
+                <button
+                  onClick={() => {
+                    if (userStorage.isAuthenticated()) {
+                      navigate("/profile");
+                      setProfileOpen(false);
+                    } else {
+                      navigate("/login");
+                    }
+                  }}
+                  className="w-10 h-10 flex items-center justify-center
+                rounded-full border border-gray-500/50 hover:border-white mb-6"
+                >
+                  {userStorage.getUser()?.profilePictureUrl ? (
+                    <img
+                      src={userStorage.getUser().profilePictureUrl.startsWith('http')
+                        ? userStorage.getUser().profilePictureUrl
+                        : `/api/users/profile-picture/${userStorage.getUser().profilePictureUrl}`}
+                      alt="Profile"
+                      className="w-10 h-10 rounded-full object-cover border border-gray-500/50 hover:border-white transition"
+                    />
+                  ) : userStorage.getUser()?.username ? (
+                    <div className="w-10 h-10 rounded-full border border-gray-500/50 hover:border-white transition flex items-center justify-center bg-purple-600/30 text-purple-400 font-bold">
+                      {userStorage.getUser().username.charAt(0).toUpperCase()}
+                    </div>
+                  ) : (
+                    <UserCircle className="text-gray-300" size={28} />
+                  )}
+                </button>
+              )}
 
             </div>
+
           </div>
         </div>
       </nav>

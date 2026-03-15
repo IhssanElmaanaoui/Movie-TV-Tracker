@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { MessageSquare, Film, Tv, Lightbulb, Bug, Megaphone, Star, ArrowUp, MessageCircle, Clock, Plus } from "lucide-react";
+import { MessageSquare, Film, Tv, Lightbulb, Bug, Megaphone, Star, ArrowUp, MessageCircle, Clock, Plus, Trash2 } from "lucide-react";
 import { userStorage } from "../services/authService";
 import communityService from "../services/communityService";
+import adminService from "../services/adminService";
 
 export default function Community() {
     const navigate = useNavigate();
@@ -12,6 +13,23 @@ export default function Community() {
     const [categoryStats, setCategoryStats] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showCreateModal, setShowCreateModal] = useState(false);
+
+    /* Dialog States */
+    const [confirmState, setConfirmState] = useState({ isOpen: false, title: '', message: '', onConfirm: null });
+    const [alertState, setAlertState] = useState({ isOpen: false, title: '', message: '' });
+
+    const showConfirm = (title, message, onConfirmCallback) => {
+        setConfirmState({
+            isOpen: true, title, message, onConfirm: () => {
+                setConfirmState(prev => ({ ...prev, isOpen: false }));
+                onConfirmCallback();
+            }
+        });
+    };
+
+    const showAlert = (title, message) => {
+        setAlertState({ isOpen: true, title, message });
+    };
 
     useEffect(() => {
         const currentUser = userStorage.getUser();
@@ -87,6 +105,19 @@ export default function Community() {
 
     const handleTopicClick = (topicId) => {
         navigate(`/community/topic/${topicId}`);
+    };
+
+    const handleDeleteTopic = (topicId) => {
+        showConfirm("Force Delete Topic", "Are you sure you want to force-delete this topic as an admin?", async () => {
+            try {
+                await adminService.forceDeleteTopic(topicId);
+                setTopics(prev => prev.filter(t => t.id !== topicId));
+                fetchCategoryStats();
+            } catch (error) {
+                console.error("Failed to delete topic:", error);
+                showAlert("Error", "Failed to delete topic. Ensure you are an active admin.");
+            }
+        });
     };
 
     const getCategoryIcon = (categoryName) => {
@@ -326,6 +357,22 @@ export default function Community() {
                                                 </span>
                                             </div>
                                         </div>
+
+                                        {/* Admin Actions */}
+                                        {user?.role === 'ADMIN' && (
+                                            <div className="flex items-center ml-2">
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleDeleteTopic(topic.id);
+                                                    }}
+                                                    className="p-2 text-gray-500 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
+                                                    title="Force Delete Topic"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
                                 ))}
                             </div>
@@ -345,6 +392,21 @@ export default function Community() {
                     }}
                 />
             )}
+
+            {/* Dialogs */}
+            <ConfirmDialog
+                isOpen={confirmState.isOpen}
+                title={confirmState.title}
+                message={confirmState.message}
+                onConfirm={confirmState.onConfirm}
+                onCancel={() => setConfirmState(p => ({ ...p, isOpen: false }))}
+            />
+            <AlertDialog
+                isOpen={alertState.isOpen}
+                title={alertState.title}
+                message={alertState.message}
+                onClose={() => setAlertState(p => ({ ...p, isOpen: false }))}
+            />
         </div>
     );
 }
@@ -465,6 +527,45 @@ function CreateTopicModal({ onClose, onSuccess }) {
                             </button>
                         </div>
                     </form>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// ConfirmDialog Component
+function ConfirmDialog({ isOpen, title, message, onConfirm, onCancel, confirmText = "Confirm", cancelText = "Cancel" }) {
+    if (!isOpen) return null;
+    return (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4" onClick={onCancel}>
+            <div className="bg-gray-900 rounded-lg max-w-sm w-full border border-gray-700 p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+                <h3 className="text-xl font-bold text-white mb-2">{title}</h3>
+                <p className="text-gray-300 mb-6">{message}</p>
+                <div className="flex gap-3 justify-end">
+                    <button onClick={onCancel} className="px-5 py-2.5 bg-gray-800 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors">
+                        {cancelText}
+                    </button>
+                    <button onClick={onConfirm} className="px-5 py-2.5 bg-red-600 hover:bg-red-500 text-white rounded-lg font-medium transition-colors">
+                        {confirmText}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// AlertDialog Component
+function AlertDialog({ isOpen, title, message, onClose }) {
+    if (!isOpen) return null;
+    return (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4" onClick={onClose}>
+            <div className="bg-gray-900 rounded-lg max-w-sm w-full border border-gray-700 p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+                <h3 className="text-xl font-bold text-white mb-2">{title}</h3>
+                <p className="text-gray-300 mb-6">{message}</p>
+                <div className="flex justify-end">
+                    <button onClick={onClose} className="px-5 py-2.5 bg-purple-600 hover:bg-purple-500 text-white rounded-lg font-medium transition-colors">
+                        OK
+                    </button>
                 </div>
             </div>
         </div>

@@ -2,10 +2,11 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
     ArrowLeft, ArrowUp, ArrowDown, MessageCircle, Clock,
-    Trash2, ChevronDown, Share2, Bookmark, Minus
+    Trash2, ChevronDown, Share2, Bookmark, Minus, Ban, Shield
 } from "lucide-react";
 import { userStorage } from "../services/authService";
 import communityService from "../services/communityService";
+import adminService from "../services/adminService";
 
 /* ─── helpers ─────────────────────────────────────────────────────────── */
 
@@ -60,7 +61,7 @@ const INDENT_COLORS = [
 
 /* ─── Comment node ─────────────────────────────────────────────────────── */
 
-function CommentNode({ reply, depth, topicId, opUsername, currentUser, onDelete }) {
+function CommentNode({ reply, depth, topicId, opUsername, currentUser, onDelete, onAdminDelete, onAdminBan, onAdminSuspend }) {
     const [collapsed, setCollapsed] = useState(false);
     const [showReplyForm, setShowReplyForm] = useState(false);
     const [replyContent, setReplyContent] = useState('');
@@ -178,6 +179,35 @@ function CommentNode({ reply, depth, topicId, opUsername, currentUser, onDelete 
                                         Delete
                                     </button>
                                 )}
+
+                                {currentUser?.role === 'ADMIN' && (
+                                    <>
+                                        <button
+                                            onClick={() => onAdminDelete(reply.id)}
+                                            className="flex items-center gap-1 text-red-500 hover:text-red-400 transition-colors font-bold uppercase tracking-wide"
+                                            title="Force Delete (Admin)"
+                                        >
+                                            <Trash2 className="w-3.5 h-3.5" />
+                                            Force Delete
+                                        </button>
+                                        <button
+                                            onClick={() => onAdminSuspend(reply.author?.id, reply.author?.username)}
+                                            className="flex items-center gap-1 text-yellow-500 hover:text-yellow-400 transition-colors font-bold uppercase tracking-wide"
+                                            title="Suspend User (Admin)"
+                                        >
+                                            <Shield className="w-3.5 h-3.5" />
+                                            Suspend
+                                        </button>
+                                        <button
+                                            onClick={() => onAdminBan(reply.author?.id, reply.author?.username)}
+                                            className="flex items-center gap-1 text-red-600 hover:text-red-500 transition-colors font-bold uppercase tracking-wide"
+                                            title="Ban User (Admin)"
+                                        >
+                                            <Ban className="w-3.5 h-3.5" />
+                                            Ban
+                                        </button>
+                                    </>
+                                )}
                             </div>
 
                             {/* Inline reply form */}
@@ -226,6 +256,9 @@ function CommentNode({ reply, depth, topicId, opUsername, currentUser, onDelete 
                                     opUsername={opUsername}
                                     currentUser={currentUser}
                                     onDelete={onDelete}
+                                    onAdminDelete={onAdminDelete}
+                                    onAdminBan={onAdminBan}
+                                    onAdminSuspend={onAdminSuspend}
                                 />
                             ))}
                         </>
@@ -251,6 +284,33 @@ export default function TopicDetail() {
     const [saved, setSaved] = useState(false);
     const [copied, setCopied] = useState(false);
     const commentBoxRef = useRef(null);
+
+    /* Dialog States */
+    const [confirmState, setConfirmState] = useState({ isOpen: false, title: '', message: '', onConfirm: null });
+    const [alertState, setAlertState] = useState({ isOpen: false, title: '', message: '' });
+    const [promptState, setPromptState] = useState({ isOpen: false, title: '', description: '', inputLabel: '', defaultValue: '', onConfirm: null });
+
+    const showConfirm = (title, message, onConfirmCallback) => {
+        setConfirmState({
+            isOpen: true, title, message, onConfirm: () => {
+                setConfirmState(prev => ({ ...prev, isOpen: false }));
+                onConfirmCallback();
+            }
+        });
+    };
+
+    const showAlert = (title, message) => {
+        setAlertState({ isOpen: true, title, message });
+    };
+
+    const showPrompt = (title, description, inputLabel, defaultValue, onConfirmCallback) => {
+        setPromptState({
+            isOpen: true, title, description, inputLabel, defaultValue, onConfirm: (val) => {
+                setPromptState(prev => ({ ...prev, isOpen: false }));
+                onConfirmCallback(val);
+            }
+        });
+    };
 
     /* websocket + polling */
     useEffect(() => {
@@ -336,13 +396,65 @@ export default function TopicDetail() {
         setSending(false);
     };
 
-    const handleDelete = async (replyId) => {
-        if (!window.confirm('Delete this comment?')) return;
-        const result = await communityService.deleteReply(replyId);
-        if (result.success) {
-            setReplies(prev => prev.filter(r => r.id !== replyId));
-            setTopic(prev => prev ? { ...prev, replyCount: Math.max(0, (prev.replyCount || 1) - 1) } : null);
-        }
+    const handleDelete = (replyId) => {
+        showConfirm("Delete Comment", "Are you sure you want to delete this comment?", async () => {
+            const result = await communityService.deleteReply(replyId);
+            if (result.success) {
+                setReplies(prev => prev.filter(r => r.id !== replyId));
+                setTopic(prev => prev ? { ...prev, replyCount: Math.max(0, (prev.replyCount || 1) - 1) } : null);
+            }
+        });
+    };
+
+    const handleAdminDeleteTopic = () => {
+        showConfirm("Force Delete Topic", "As an Admin, are you sure you want to force delete this topic?", async () => {
+            try {
+                await adminService.forceDeleteTopic(topicId);
+                navigate('/community');
+            } catch (error) {
+                showAlert("Error", "Failed to delete topic. Ensure you are an admin.");
+            }
+        });
+    };
+
+    const handleAdminDeleteReply = (replyId) => {
+        showConfirm("Force Delete Reply", "As an Admin, are you sure you want to force delete this reply?", async () => {
+            try {
+                await adminService.forceDeleteReply(replyId);
+                setReplies(prev => prev.filter(r => r.id !== replyId));
+                setTopic(prev => prev ? { ...prev, replyCount: Math.max(0, (prev.replyCount || 1) - 1) } : null);
+            } catch (error) {
+                showAlert("Error", "Failed to delete reply. Ensure you are an admin.");
+            }
+        });
+    };
+
+    const handleAdminBan = (userId, username) => {
+        showConfirm("Ban User", `As an Admin, are you sure you want to ban user ${username}?`, async () => {
+            try {
+                await adminService.banUser(userId, 'Banned via community moderation');
+                showAlert("Success", `User ${username} has been banned.`);
+            } catch (error) {
+                showAlert("Error", "Failed to ban user.");
+            }
+        });
+    };
+
+    const handleAdminSuspend = (userId, username) => {
+        showPrompt("Suspend User", `As an Admin, suspend user ${username}.`, "Hours:", "24", async (hoursStr) => {
+            if (!hoursStr) return;
+            const hours = parseInt(hoursStr, 10);
+            if (isNaN(hours) || hours <= 0) {
+                showAlert("Error", "Invalid hours.");
+                return;
+            }
+            try {
+                await adminService.suspendUser(userId, 'Suspended via community moderation', hours);
+                showAlert("Success", `User ${username} has been suspended for ${hours} hours.`);
+            } catch (error) {
+                showAlert("Error", "Failed to suspend user.");
+            }
+        });
     };
 
     const handleShare = () => {
@@ -481,6 +593,37 @@ export default function TopicDetail() {
                                     <Bookmark className="w-4 h-4" fill={saved ? 'currentColor' : 'none'} />
                                     {saved ? 'Saved' : 'Save'}
                                 </button>
+
+                                {/* Admin OP Actions */}
+                                {user?.role === 'ADMIN' && (
+                                    <>
+                                        <div className="w-px h-4 bg-[#343536] mx-1"></div>
+                                        <button
+                                            onClick={handleAdminDeleteTopic}
+                                            className="flex items-center gap-1.5 text-xs text-red-500 hover:bg-red-500/10 px-2.5 py-1.5 rounded transition-colors font-bold uppercase tracking-wide"
+                                            title="Force Delete Topic (Admin)"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                            Force Delete OP
+                                        </button>
+                                        <button
+                                            onClick={() => handleAdminSuspend(topic.author?.id, topic.author?.username)}
+                                            className="flex items-center gap-1.5 text-xs text-yellow-500 hover:bg-yellow-500/10 px-2.5 py-1.5 rounded transition-colors font-bold uppercase tracking-wide"
+                                            title="Suspend OP (Admin)"
+                                        >
+                                            <Shield className="w-4 h-4" />
+                                            Suspend OP
+                                        </button>
+                                        <button
+                                            onClick={() => handleAdminBan(topic.author?.id, topic.author?.username)}
+                                            className="flex items-center gap-1.5 text-xs text-red-600 hover:bg-red-600/10 px-2.5 py-1.5 rounded transition-colors font-bold uppercase tracking-wide"
+                                            title="Ban OP (Admin)"
+                                        >
+                                            <Ban className="w-4 h-4" />
+                                            Ban OP
+                                        </button>
+                                    </>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -580,6 +723,9 @@ export default function TopicDetail() {
                                         opUsername={topic.author?.username}
                                         currentUser={user}
                                         onDelete={handleDelete}
+                                        onAdminDelete={handleAdminDeleteReply}
+                                        onAdminBan={handleAdminBan}
+                                        onAdminSuspend={handleAdminSuspend}
                                     />
                                 </div>
                             ))}
@@ -587,6 +733,104 @@ export default function TopicDetail() {
                     )}
                 </div>
 
+                {/* Dialogs */}
+                <ConfirmDialog
+                    isOpen={confirmState.isOpen}
+                    title={confirmState.title}
+                    message={confirmState.message}
+                    onConfirm={confirmState.onConfirm}
+                    onCancel={() => setConfirmState(p => ({ ...p, isOpen: false }))}
+                />
+                <AlertDialog
+                    isOpen={alertState.isOpen}
+                    title={alertState.title}
+                    message={alertState.message}
+                    onClose={() => setAlertState(p => ({ ...p, isOpen: false }))}
+                />
+                <PromptDialog
+                    isOpen={promptState.isOpen}
+                    title={promptState.title}
+                    description={promptState.description}
+                    inputLabel={promptState.inputLabel}
+                    defaultValue={promptState.defaultValue}
+                    onConfirm={promptState.onConfirm}
+                    onCancel={() => setPromptState(p => ({ ...p, isOpen: false }))}
+                />
+
+            </div>
+        </div>
+    );
+}
+
+// ConfirmDialog Component
+function ConfirmDialog({ isOpen, title, message, onConfirm, onCancel, confirmText = "Confirm", cancelText = "Cancel" }) {
+    if (!isOpen) return null;
+    return (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4" onClick={onCancel}>
+            <div className="bg-gray-900 rounded-lg max-w-sm w-full border border-gray-700 p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+                <h3 className="text-xl font-bold text-white mb-2">{title}</h3>
+                <p className="text-gray-300 mb-6">{message}</p>
+                <div className="flex gap-3 justify-end">
+                    <button onClick={onCancel} className="px-5 py-2.5 bg-gray-800 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors">
+                        {cancelText}
+                    </button>
+                    <button onClick={onConfirm} className="px-5 py-2.5 bg-red-600 hover:bg-red-500 text-white rounded-lg font-medium transition-colors">
+                        {confirmText}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// AlertDialog Component
+function AlertDialog({ isOpen, title, message, onClose }) {
+    if (!isOpen) return null;
+    return (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4" onClick={onClose}>
+            <div className="bg-gray-900 rounded-lg max-w-sm w-full border border-gray-700 p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+                <h3 className="text-xl font-bold text-white mb-2">{title}</h3>
+                <p className="text-gray-300 mb-6">{message}</p>
+                <div className="flex justify-end">
+                    <button onClick={onClose} className="px-5 py-2.5 bg-purple-600 hover:bg-purple-500 text-white rounded-lg font-medium transition-colors">
+                        OK
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// PromptDialog Component
+function PromptDialog({ isOpen, title, description, onConfirm, onCancel, inputLabel, defaultValue = "" }) {
+    const [value, setValue] = useState(defaultValue);
+
+    useEffect(() => { if (isOpen) setValue(defaultValue); }, [isOpen, defaultValue]);
+
+    if (!isOpen) return null;
+    return (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4" onClick={onCancel}>
+            <div className="bg-gray-900 rounded-lg max-w-sm w-full border border-gray-700 p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+                <h3 className="text-xl font-bold text-white mb-2">{title}</h3>
+                <p className="text-gray-300 mb-4 text-sm">{description}</p>
+                <div className="mb-6">
+                    <label className="block text-gray-400 text-xs font-bold uppercase tracking-wide mb-2">{inputLabel}</label>
+                    <input
+                        type="number"
+                        min="1"
+                        value={value}
+                        onChange={(e) => setValue(e.target.value)}
+                        className="w-full bg-[#1a1a1b] text-white border border-[#343536] rounded-lg px-4 py-2.5 focus:outline-none focus:border-purple-600"
+                    />
+                </div>
+                <div className="flex gap-3 justify-end">
+                    <button onClick={onCancel} className="px-5 py-2.5 bg-gray-800 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors">
+                        Cancel
+                    </button>
+                    <button onClick={() => onConfirm(value)} className="px-5 py-2.5 bg-yellow-600 hover:bg-yellow-500 text-white rounded-lg font-medium transition-colors">
+                        Confirm
+                    </button>
+                </div>
             </div>
         </div>
     );
