@@ -43,7 +43,7 @@ const CATEGORIES = [
   },
 ];
 
-export default function MovieCategoriesCarousel({ onLoadComplete }) {
+export default function MovieCategoriesCarousel({ onLoadComplete, onMovieSelect }) {
   const navigate = useNavigate();
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -54,8 +54,9 @@ export default function MovieCategoriesCarousel({ onLoadComplete }) {
   const getGenre = (ids) =>
     ids?.length > 0 ? GENRE_MAP[ids[0]] || "Movie" : "Movie";
 
-  // ✅ Handle card click navigation
+  // ✅ Handle card click navigation + notify parent for chatbot context
   const handleCardClick = (movie, categoryType) => {
+    onMovieSelect?.(movie);
     const isTV = categoryType === "tv" || movie.name; // TV shows have 'name' instead of 'title'
     const route = isTV ? `/tv/${movie.id}` : `/movie/${movie.id}`;
     navigate(route);

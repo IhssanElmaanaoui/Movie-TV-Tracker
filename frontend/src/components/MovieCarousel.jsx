@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './MovieCarousel.css';
 
-export default function MovieCarousel({ onLoadComplete }) {
+export default function MovieCarousel({ onLoadComplete, onMovieSelect }) {
   const navigate = useNavigate();
   const [movies, setMovies] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -161,6 +161,7 @@ export default function MovieCarousel({ onLoadComplete }) {
   };
 
   const handleViewDetails = () => {
+    onMovieSelect?.(currentMovie);
     navigate(`/movie/${currentMovie.id}`);
   };
 
