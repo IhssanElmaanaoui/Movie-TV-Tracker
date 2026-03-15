@@ -1,6 +1,4 @@
-import axios from 'axios';
-
-const API_BASE_URL = 'http://localhost:8080/api';
+import api from './api';
 
 // Get the logged-in user from localStorage
 const getUser = () => {
@@ -22,7 +20,7 @@ const chatService = {
                 throw new Error('User not authenticated');
             }
 
-            const response = await axios.get(`${API_BASE_URL}/chat/conversations?userId=${user.id}`);
+            const response = await api.get(`/chat/conversations?userId=${user.id}`);
             return { success: true, data: response.data };
         } catch (error) {
             console.error('Error fetching conversations:', error);
@@ -38,7 +36,7 @@ const chatService = {
                 throw new Error('User not authenticated');
             }
 
-            const response = await axios.get(`${API_BASE_URL}/chat/conversations/${conversationId}/messages?userId=${user.id}`);
+            const response = await api.get(`/chat/conversations/${conversationId}/messages?userId=${user.id}`);
             return { success: true, data: response.data };
         } catch (error) {
             console.error('Error fetching messages:', error);
@@ -54,11 +52,7 @@ const chatService = {
                 throw new Error('User not authenticated');
             }
 
-            const response = await axios.post(`${API_BASE_URL}/chat/messages/send?userId=${user.id}`, messageData, {
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            });
+            const response = await api.post(`/chat/messages/send?userId=${user.id}`, messageData);
             return { success: true, data: response.data };
         } catch (error) {
             console.error('Error sending message:', error);
@@ -74,7 +68,7 @@ const chatService = {
                 throw new Error('User not authenticated');
             }
 
-            await axios.put(`${API_BASE_URL}/chat/conversations/${conversationId}/read?userId=${user.id}`, {});
+            await api.put(`/chat/conversations/${conversationId}/read?userId=${user.id}`, {});
             return { success: true };
         } catch (error) {
             console.error('Error marking messages as read:', error);
@@ -90,7 +84,7 @@ const chatService = {
                 throw new Error('User not authenticated');
             }
 
-            const response = await axios.get(`${API_BASE_URL}/chat/unread-count?userId=${user.id}`);
+            const response = await api.get(`/chat/unread-count?userId=${user.id}`);
             return { success: true, data: response.data };
         } catch (error) {
             console.error('Error fetching unread count:', error);

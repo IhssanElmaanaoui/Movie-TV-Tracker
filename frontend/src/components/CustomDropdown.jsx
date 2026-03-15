@@ -7,8 +7,8 @@ export default function CustomDropdown({
     options,
     placeholder = "Select...",
     icon: Icon,
-    iconColor = "text-blue-400",
-    focusColor = "focus:ring-blue-500"
+    iconColor = "text-purple-600",
+    focusColor = "focus:ring-purple-500"
 }) {
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef(null);
@@ -48,7 +48,7 @@ export default function CustomDropdown({
             </button>
 
             {isOpen && (
-                <div className="absolute z-[9999] w-full mt-2 bg-slate-800 border border-white/20 rounded-xl shadow-2xl overflow-hidden backdrop-blur-sm animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="absolute z-[9999] w-full mt-2 bg-gray-900 border border-white/20 rounded-xl shadow-2xl overflow-hidden backdrop-blur-sm animate-in fade-in slide-in-from-top-2 duration-200">
                     <div className="max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
                         {options.map((option) => (
                             <button

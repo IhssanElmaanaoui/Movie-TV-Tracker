@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import Skeleton from '@mui/material/Skeleton';
 
 const TMDB_BEARER_TOKEN = import.meta.env.VITE_TMDB_BEARER_TOKEN || "YOUR_TOKEN_HERE";
 const IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w500";
@@ -76,7 +77,60 @@ export default function CollectionCarousel({ onLoadComplete }) {
     };
 
     if (loading || collections.length === 0) {
-        return <div style={{ minHeight: '400px' }}></div>;
+        return (
+            <section className="max-w-6xl mx-auto px-6 py-12">
+                {/* Title and Button Skeleton */}
+                <div className="flex items-center gap-4 mb-6">
+                    <Skeleton
+                        variant="text"
+                        width={150}
+                        height={40}
+                        sx={{ bgcolor: 'rgba(255, 255, 255, 0.1)' }}
+                    />
+                    <Skeleton
+                        variant="rectangular"
+                        width={100}
+                        height={32}
+                        sx={{ bgcolor: 'rgba(255, 255, 255, 0.1)', borderRadius: '999px' }}
+                    />
+                </div>
+
+                {/* Collections Skeleton */}
+                <div className="flex gap-6 overflow-hidden pb-4">
+                    {Array.from({ length: 6 }).map((_, index) => (
+                        <div
+                            key={index}
+                            className="flex-shrink-0"
+                            style={{ width: isMobile ? "180px" : "280px" }}
+                        >
+                            {/* Poster Skeleton */}
+                            <Skeleton
+                                variant="rectangular"
+                                width={isMobile ? 180 : 280}
+                                height={isMobile ? 270 : 420}
+                                sx={{ bgcolor: 'rgba(255, 255, 255, 0.1)', borderRadius: '8px', marginBottom: '12px' }}
+                            />
+
+                            {/* Title Skeleton */}
+                            <Skeleton
+                                variant="text"
+                                width="100%"
+                                height={24}
+                                sx={{ bgcolor: 'rgba(255, 255, 255, 0.1)' }}
+                            />
+
+                            {/* Count Skeleton */}
+                            <Skeleton
+                                variant="text"
+                                width="60%"
+                                height={20}
+                                sx={{ bgcolor: 'rgba(255, 255, 255, 0.1)' }}
+                            />
+                        </div>
+                    ))}
+                </div>
+            </section>
+        );
     }
 
     return (
@@ -92,7 +146,7 @@ export default function CollectionCarousel({ onLoadComplete }) {
                     <h2 className="text-2xl text-white font-bold">Collections</h2>
                     <button
                         onClick={() => navigate("/collections")}
-                        className="text-sm bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-full transition-colors"
+                        className="text-sm bg-purple-600 hover:bg-purple-600/90 text-white px-4 py-1.5 rounded-full transition-colors"
                     >
                         Explore All
                     </button>
@@ -133,7 +187,7 @@ export default function CollectionCarousel({ onLoadComplete }) {
                             }}
                         >
                             {/* ✅ Rectangle Poster */}
-                            <div className="relative overflow-hidden rounded-lg mb-3 aspect-[2/3] bg-slate-800">
+                            <div className="relative overflow-hidden rounded-lg mb-3 aspect-[2/3] bg-gray-900">
                                 <img
                                     src={`${IMAGE_BASE_URL}${collection.poster}`}
                                     alt={collection.name}

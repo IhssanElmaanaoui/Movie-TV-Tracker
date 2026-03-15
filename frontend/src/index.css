@@ -73,6 +73,10 @@
         animation: fadeIn 0.8s ease-out;
     }
 
+    .animate-fade-in {
+        animation: fadeIn 0.5s ease-out;
+    }
+
     /* Hide scrollbar for mobile horizontal scrolling */
     .scrollbar-hide {
         -ms-overflow-style: none;

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Send, ArrowLeft, MessageCircle, Search, User as UserIcon, UserPlus, Image, Mic, Paperclip, X } from "lucide-react";
+import { Send, ArrowLeft, MessageCircle, Search, User as UserIcon, UserPlus, Image, Mic, Paperclip, X, ArrowDown } from "lucide-react";
 import chatService from "../services/chatService";
 import webSocketService from "../services/webSocketService";
 import { userStorage } from "../services/authService";
@@ -23,12 +23,30 @@ export default function Chat() {
     const [searchingUsers, setSearchingUsers] = useState(false);
     const [uploadingFile, setUploadingFile] = useState(false);
     const [selectedFile, setSelectedFile] = useState(null);
+    const [isAtBottom, setIsAtBottom] = useState(true);
+    const [hasNewMessages, setHasNewMessages] = useState(false);
     const messagesEndRef = useRef(null);
+    const messagesContainerRef = useRef(null);
     const fileInputRef = useRef(null);
+    const selectedConversationRef = useRef(null);
 
     // Auto-scroll to bottom when new messages arrive
-    const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const scrollToBottom = (smooth = true) => {
+        messagesEndRef.current?.scrollIntoView({ behavior: smooth ? "smooth" : "auto" });
+        setHasNewMessages(false);
+    };
+
+    // Check if user is at bottom of messages
+    const handleScroll = () => {
+        if (!messagesContainerRef.current) return;
+
+        const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
+        const isBottom = scrollHeight - scrollTop - clientHeight < 50; // 50px threshold
+        setIsAtBottom(isBottom);
+
+        if (isBottom) {
+            setHasNewMessages(false);
+        }
     };
 
     useEffect(() => {
@@ -49,7 +67,10 @@ export default function Chat() {
     }, [navigate]);
 
     useEffect(() => {
-        scrollToBottom();
+        // Only auto-scroll if user is at bottom
+        if (isAtBottom) {
+            scrollToBottom(false);
+        }
     }, [messages]);
 
     // Check if there's a recipient ID in URL params (for starting a new conversation)
@@ -70,13 +91,36 @@ export default function Chat() {
     };
 
     const handleNewMessage = (notification) => {
+        // If the message is for the currently selected conversation, load new messages
+        // Use ref to get the current value and avoid stale closure
+        if (selectedConversationRef.current && notification.conversationId === selectedConversationRef.current.id) {
+            loadMessages(selectedConversationRef.current.id);
+
+            // Suppress navbar badge immediately, then mark as read on server
+            window.dispatchEvent(new CustomEvent('chatMessagesRead'));
+            chatService.markAsRead(selectedConversationRef.current.id);
+
+            // If conversation was pending, immediately update its status
+            if (selectedConversationRef.current.status === 'PENDING') {
+                const updatedConversation = {
+                    ...selectedConversationRef.current,
+                    status: 'ACCEPTED'
+                };
+                setSelectedConversation(updatedConversation);
+                selectedConversationRef.current = updatedConversation;
+            }
+
+            // If user is not at bottom, show new message indicator
+            if (!isAtBottom) {
+                setHasNewMessages(true);
+            }
+        } else {
+            // Message is for a different conversation — notify navbar
+            window.dispatchEvent(new CustomEvent('chatNewMessage'));
+        }
+
         // Refresh conversations to update last message and unread count
         loadConversations();
-
-        // If the message is for the currently selected conversation, add it to messages
-        if (selectedConversation && notification.conversationId === selectedConversation.id) {
-            loadMessages(selectedConversation.id);
-        }
     };
 
     const startNewConversation = async (recipientId) => {
@@ -93,17 +137,21 @@ export default function Chat() {
                 unreadCount: 0
             };
             setSelectedConversation(newConv);
+            selectedConversationRef.current = newConv;
             setMessages([]);
         }
     };
 
     const selectConversation = async (conversation) => {
         setSelectedConversation(conversation);
+        selectedConversationRef.current = conversation;
+        setHasNewMessages(false);
         await loadMessages(conversation.id);
 
         // Mark messages as read
         if (conversation.unreadCount > 0) {
             await chatService.markAsRead(conversation.id);
+            window.dispatchEvent(new CustomEvent('chatMessagesRead'));
             loadConversations(); // Refresh to update unread count
         }
     };
@@ -112,6 +160,8 @@ export default function Chat() {
         const result = await chatService.getMessages(conversationId);
         if (result.success) {
             setMessages(result.data);
+            setIsAtBottom(true); // When loading a conversation, start at bottom
+            setHasNewMessages(false);
         }
     };
 
@@ -162,6 +212,17 @@ export default function Chat() {
             if (result.success) {
                 setMessageInput("");
                 setSelectedFile(null);
+                setIsAtBottom(true); // User sent a message, they should be at bottom
+
+                // If conversation was pending, immediately update its status to remove the informative banner
+                if (selectedConversation?.status === 'PENDING') {
+                    const updatedConversation = {
+                        ...selectedConversation,
+                        status: 'ACCEPTED'
+                    };
+                    setSelectedConversation(updatedConversation);
+                    selectedConversationRef.current = updatedConversation;
+                }
 
                 // If it's a new conversation, reload conversations
                 if (!selectedConversation?.id) {
@@ -172,6 +233,7 @@ export default function Chat() {
                         const newConv = updatedConvs.data.find(c => c.otherUserId === messageData.recipientId);
                         if (newConv) {
                             setSelectedConversation(newConv);
+                            selectedConversationRef.current = newConv;
                             await loadMessages(newConv.id);
                         }
                     }
@@ -182,6 +244,12 @@ export default function Chat() {
             }
         } catch (error) {
             console.error('Error sending message:', error);
+            // Show error message to user
+            const errorMessage = error.response?.data?.message ||
+                error.response?.data ||
+                error.message ||
+                'Failed to send message. Please try again.';
+            alert(errorMessage);
         } finally {
             setSending(false);
             setUploadingFile(false);
@@ -266,6 +334,7 @@ export default function Chat() {
                 unreadCount: 0
             };
             setSelectedConversation(newConv);
+            selectedConversationRef.current = newConv;
             setMessages([]);
         }
         setShowUserSearch(false);
@@ -278,7 +347,7 @@ export default function Chat() {
             <div className="max-w-7xl mx-auto px-4 py-8">
                 <div className="flex gap-6 h-[calc(100vh-180px)]">
                     {/* Conversations List */}
-                    <div className="w-1/3 bg-gray-800/50 rounded-lg overflow-hidden flex flex-col">
+                    <div className="w-1/3 bg-gray-900/50 rounded-lg overflow-hidden flex flex-col">
                         {/* Header */}
                         <div className="p-4 border-b border-gray-700">
                             <div className="flex items-center justify-between mb-4">
@@ -288,7 +357,7 @@ export default function Chat() {
                                 </h2>
                                 <button
                                     onClick={() => setShowUserSearch(true)}
-                                    className="p-2 bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors"
+                                    className="p-2 bg-purple-600 hover:bg-purple-600/90 rounded-lg transition-colors"
                                     title="New Chat"
                                 >
                                     <UserPlus className="w-5 h-5 text-white" />
@@ -305,16 +374,16 @@ export default function Chat() {
                                     placeholder="Search conversations..."
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="w-full pl-10 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-500"
+                                    className="w-full pl-10 pr-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-600 500"
                                 />
                             </div>
                         </div>
 
                         {/* Conversations */}
-                        <div className="flex-1 overflow-y-auto">
+                        <div className="flex-1 overflow-y-auto scrollbar-thin">
                             {loading ? (
                                 <div className="flex items-center justify-center h-full">
-                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
+                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 500"></div>
                                 </div>
                             ) : filteredConversations.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center h-full text-gray-400 p-8 text-center">
@@ -327,7 +396,7 @@ export default function Chat() {
                                     <div
                                         key={conv.id}
                                         onClick={() => selectConversation(conv)}
-                                        className={`p-4 border-b border-gray-700 cursor-pointer hover:bg-gray-700/50 transition-colors ${selectedConversation?.id === conv.id ? 'bg-gray-700/50' : ''
+                                        className={`p-4 border-b border-gray-700 cursor-pointer hover:bg-gray-800/50 transition-colors ${selectedConversation?.id === conv.id ? 'bg-gray-800/50' : ''
                                             }`}
                                     >
                                         <div className="flex items-start gap-3">
@@ -344,13 +413,7 @@ export default function Chat() {
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex justify-between items-start">
-                                                    <h3
-                                                        className="font-semibold text-white truncate hover:text-purple-400 cursor-pointer transition-colors"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            navigate(`/user/${conv.otherUserId}`);
-                                                        }}
-                                                    >
+                                                    <h3 className="font-semibold text-white truncate">
                                                         {conv.otherUserUsername}
                                                     </h3>
                                                     {conv.lastMessageTime && (
@@ -378,13 +441,16 @@ export default function Chat() {
                     </div>
 
                     {/* Chat Area */}
-                    <div className="flex-1 bg-gray-800/50 rounded-lg overflow-hidden flex flex-col">
+                    <div className="flex-1 bg-gray-900/50 rounded-lg overflow-hidden flex flex-col">
                         {selectedConversation ? (
                             <>
                                 {/* Chat Header */}
                                 <div className="p-4 border-b border-gray-700 flex items-center gap-3">
                                     <button
-                                        onClick={() => setSelectedConversation(null)}
+                                        onClick={() => {
+                                            setSelectedConversation(null);
+                                            selectedConversationRef.current = null;
+                                        }}
                                         className="lg:hidden text-gray-400 hover:text-white"
                                     >
                                         <ArrowLeft className="w-5 h-5" />
@@ -404,7 +470,7 @@ export default function Chat() {
                                         )}
                                     </div>
                                     <h2
-                                        className="text-xl font-bold text-white hover:text-purple-400 cursor-pointer transition-colors"
+                                        className="text-xl font-bold text-white hover:text-purple-600 400 cursor-pointer transition-colors"
                                         onClick={() => navigate(`/user/${selectedConversation.otherUserId}`)}
                                     >
                                         {selectedConversation.otherUserUsername}
@@ -412,7 +478,11 @@ export default function Chat() {
                                 </div>
 
                                 {/* Messages */}
-                                <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                                <div
+                                    ref={messagesContainerRef}
+                                    onScroll={handleScroll}
+                                    className="flex-1 overflow-y-auto p-4 space-y-4 relative scrollbar-thin"
+                                >
                                     {messages.map((msg) => (
                                         <div
                                             key={msg.id}
@@ -421,7 +491,7 @@ export default function Chat() {
                                             <div
                                                 className={`max-w-[70%] rounded-lg px-4 py-2 ${msg.senderId === user?.id
                                                     ? 'bg-purple-600 text-white'
-                                                    : 'bg-gray-700 text-white'
+                                                    : 'bg-gray-800 text-white'
                                                     }`}
                                             >
                                                 {/* Image message */}
@@ -453,7 +523,7 @@ export default function Chat() {
                                                             href={msg.mediaUrl}
                                                             target="_blank"
                                                             rel="noopener noreferrer"
-                                                            className="flex items-center gap-2 text-blue-300 hover:text-blue-200 underline"
+                                                            className="flex items-center gap-2 text-purple-600 hover:text-purple-600 underline"
                                                         >
                                                             <Paperclip className="w-4 h-4" />
                                                             {msg.mediaFileName || 'Download file'}
@@ -471,13 +541,42 @@ export default function Chat() {
                                         </div>
                                     ))}
                                     <div ref={messagesEndRef} />
+
+                                    {/* Scroll to bottom button */}
+                                    {hasNewMessages && !isAtBottom && (
+                                        <button
+                                            onClick={() => scrollToBottom(true)}
+                                            className="fixed bottom-24 right-8 bg-purple-600 hover:bg-purple-600/90 text-white rounded-full p-3 shadow-lg transition-all transform hover:scale-110 z-10 flex items-center gap-2"
+                                        >
+                                            <ArrowDown className="w-5 h-5" />
+                                            <span className="text-sm font-medium">New messages</span>
+                                        </button>
+                                    )}
                                 </div>
+
+                                {/* Pending Conversation Banner */}
+                                {selectedConversation?.status === 'PENDING' && (
+                                    <div className="px-4 py-3 bg-yellow-900/30 border-t border-yellow-700/50">
+                                        <div className="flex items-center gap-2 text-yellow-400 text-sm">
+                                            <MessageCircle className="w-4 h-4" />
+                                            {selectedConversation.createdById === user?.id ? (
+                                                <p>
+                                                    Message request sent. You can send one message until {selectedConversation.otherUserUsername} accepts.
+                                                </p>
+                                            ) : (
+                                                <p>
+                                                    {selectedConversation.otherUserUsername} sent you a message request. Reply to accept.
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
 
                                 {/* Message Input */}
                                 <form onSubmit={sendMessage} className="p-4 border-t border-gray-700">
                                     {/* File preview */}
                                     {selectedFile && (
-                                        <div className="mb-2 p-3 bg-gray-700/50 rounded-lg flex items-center justify-between">
+                                        <div className="mb-2 p-3 bg-gray-800/50 rounded-lg flex items-center justify-between">
                                             <div className="flex items-center gap-2">
                                                 <Paperclip className="w-4 h-4 text-gray-400" />
                                                 <span className="text-sm text-gray-300">{selectedFile.name}</span>
@@ -512,7 +611,10 @@ export default function Chat() {
                                                 fileInputRef.current.accept = 'image/*';
                                                 fileInputRef.current.click();
                                             }}
-                                            className="p-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+                                            disabled={selectedConversation?.status === 'PENDING' &&
+                                                selectedConversation?.createdById === user?.id &&
+                                                selectedConversation?.messageCount > 0}
+                                            className="p-2 bg-gray-800 hover:bg-gray-800 disabled:bg-gray-900 disabled:cursor-not-allowed rounded-lg transition-colors"
                                             title="Send image"
                                         >
                                             <Image className="w-5 h-5 text-gray-300" />
@@ -525,7 +627,10 @@ export default function Chat() {
                                                 fileInputRef.current.accept = 'audio/*';
                                                 fileInputRef.current.click();
                                             }}
-                                            className="p-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+                                            disabled={selectedConversation?.status === 'PENDING' &&
+                                                selectedConversation?.createdById === user?.id &&
+                                                selectedConversation?.messageCount > 0}
+                                            className="p-2 bg-gray-800 hover:bg-gray-800 disabled:bg-gray-900 disabled:cursor-not-allowed rounded-lg transition-colors"
                                             title="Send audio"
                                         >
                                             <Mic className="w-5 h-5 text-gray-300" />
@@ -535,13 +640,25 @@ export default function Chat() {
                                             type="text"
                                             value={messageInput}
                                             onChange={(e) => setMessageInput(e.target.value)}
-                                            placeholder="Type a message..."
-                                            className="flex-1 px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-500"
+                                            disabled={selectedConversation?.status === 'PENDING' &&
+                                                selectedConversation?.createdById === user?.id &&
+                                                selectedConversation?.messageCount > 0}
+                                            placeholder={
+                                                selectedConversation?.status === 'PENDING' &&
+                                                    selectedConversation?.createdById === user?.id &&
+                                                    selectedConversation?.messageCount > 0
+                                                    ? "Waiting for response..."
+                                                    : "Type a message..."
+                                            }
+                                            className="flex-1 px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-600 500 disabled:bg-gray-900 disabled:cursor-not-allowed"
                                         />
                                         <button
                                             type="submit"
-                                            disabled={(!messageInput.trim() && !selectedFile) || sending || uploadingFile}
-                                            className="px-6 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg font-semibold transition-colors flex items-center gap-2"
+                                            disabled={(!messageInput.trim() && !selectedFile) || sending || uploadingFile ||
+                                                (selectedConversation?.status === 'PENDING' &&
+                                                    selectedConversation?.createdById === user?.id &&
+                                                    selectedConversation?.messageCount > 0)}
+                                            className="px-6 py-2 bg-purple-600 hover:bg-purple-600/90 disabled:bg-gray-800 disabled:cursor-not-allowed rounded-lg font-semibold transition-colors flex items-center gap-2"
                                         >
                                             {uploadingFile ? (
                                                 <>
@@ -573,7 +690,7 @@ export default function Chat() {
             {/* User Search Modal */}
             {showUserSearch && (
                 <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-                    <div className="bg-gray-800 rounded-lg w-full max-w-md max-h-[80vh] flex flex-col">
+                    <div className="bg-gray-900 rounded-lg w-full max-w-md max-h-[80vh] flex flex-col">
                         {/* Modal Header */}
                         <div className="p-4 border-b border-gray-700 flex items-center justify-between">
                             <h3 className="text-xl font-bold text-white flex items-center gap-2">
@@ -601,17 +718,17 @@ export default function Chat() {
                                     placeholder="Search users by name..."
                                     value={userSearchQuery}
                                     onChange={(e) => setUserSearchQuery(e.target.value)}
-                                    className="w-full pl-10 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-500"
+                                    className="w-full pl-10 pr-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-600 500"
                                     autoFocus
                                 />
                             </div>
                         </div>
 
                         {/* Search Results */}
-                        <div className="flex-1 overflow-y-auto p-4">
+                        <div className="flex-1 overflow-y-auto p-4 scrollbar-thin">
                             {searchingUsers ? (
                                 <div className="flex items-center justify-center py-8">
-                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
+                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 500"></div>
                                 </div>
                             ) : userSearchQuery.trim().length < 2 ? (
                                 <div className="text-center text-gray-400 py-8">
@@ -629,7 +746,7 @@ export default function Chat() {
                                         <button
                                             key={searchUser.id}
                                             onClick={() => startChatWithUser(searchUser)}
-                                            className="w-full p-3 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors flex items-center gap-3"
+                                            className="w-full p-3 bg-gray-800 hover:bg-gray-800 rounded-lg transition-colors flex items-center gap-3"
                                         >
                                             <div className="w-12 h-12 rounded-full bg-purple-600 flex items-center justify-center flex-shrink-0">
                                                 {searchUser.profilePictureUrl ? (

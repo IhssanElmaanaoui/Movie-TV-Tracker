@@ -6,10 +6,11 @@ import {
     DollarSign, Globe, Building2, User, Clapperboard
 } from 'lucide-react';
 // ─── Letterboxd-inspired compact redesign ─────────────────────────────────────
-import { RingLoader } from 'react-spinners';
+import Skeleton from '@mui/material/Skeleton';
 import { likesService, watchlistService, watchedService } from '../services/contentService';
 import { userStorage } from '../services/authService';
 import { ratingService } from '../services/ratingService';
+import reviewService from '../services/reviewService';
 import AddToListModal from '../components/AddToListModal';
 import StarRatingSelector from '../components/StarRatingSelector';
 
@@ -73,7 +74,7 @@ function ReviewContent({ content }) {
             {isLong && (
                 <button
                     onClick={() => setExpanded(v => !v)}
-                    className="mt-1 text-xs text-purple-400 hover:text-purple-300 flex items-center gap-0.5 transition-colors"
+                    className="mt-1 text-xs text-purple-600 hover:text-purple-600 flex items-center gap-0.5 transition-colors"
                 >
                     {expanded ? <><ChevronUp size={11} /> Show less</> : <><ChevronDown size={11} /> Read more</>}
                 </button>
@@ -105,6 +106,11 @@ export default function MovieDetail() {
     const [showListModal, setShowListModal] = useState(false);
     const [showAllReviews, setShowAllReviews] = useState(false);
 
+    // Review form state
+    const [showReviewForm, setShowReviewForm] = useState(false);
+    const [reviewText, setReviewText] = useState('');
+    const [submittingReview, setSubmittingReview] = useState(false);
+
     useEffect(() => {
         const currentUser = userStorage.getUser();
         setUser(currentUser);
@@ -113,6 +119,7 @@ export default function MovieDetail() {
     useEffect(() => {
         window.scrollTo(0, 0);
         fetchMovieDetails();
+        fetchContentReviews();
     }, [id]);
 
     // Separate useEffect for user-dependent checks
@@ -138,32 +145,31 @@ export default function MovieDetail() {
         return () => { document.title = 'Projection'; };
     }, [movie]);
 
+    const fetchContentReviews = async () => {
+        const result = await reviewService.getContentReviews(parseInt(id), 'MOVIE');
+        if (result.success) setReviews(result.data);
+    };
+
     const fetchMovieDetails = async () => {
         setLoading(true);
         try {
-            // Fetch all in parallel
-            const [movieResponse, creditsResponse, reviewsResponse] = await Promise.all([
+            const [movieResponse, creditsResponse] = await Promise.all([
                 fetch(`https://api.themoviedb.org/3/movie/${id}?language=en-US`, { headers: { Authorization: `Bearer ${TMDB_BEARER_TOKEN}` } }),
                 fetch(`https://api.themoviedb.org/3/movie/${id}/credits?language=en-US`, { headers: { Authorization: `Bearer ${TMDB_BEARER_TOKEN}` } }),
-                fetch(`https://api.themoviedb.org/3/movie/${id}/reviews?language=en-US&page=1`, { headers: { Authorization: `Bearer ${TMDB_BEARER_TOKEN}` } }),
             ]);
-            const [movieData, creditsData, reviewsData] = await Promise.all([
+            const [movieData, creditsData] = await Promise.all([
                 movieResponse.json(),
                 creditsResponse.json(),
-                reviewsResponse.json(),
             ]);
 
             setMovie(movieData);
             setCast(creditsData.cast?.slice(0, 15) || []);
-            setReviews(reviewsData.results?.slice(0, 8) || []);
 
-            // Extract key crew members
             const directorObj = creditsData.crew?.find(c => c.job === 'Director');
             const writerObjs = creditsData.crew?.filter(c => ['Writer', 'Screenplay', 'Story'].includes(c.job)).slice(0, 2) || [];
             setDirector(directorObj?.name || '');
             setWriters(writerObjs.map(w => w.name).join(', '));
 
-            // Fetch recommendations and watch providers
             fetchRecommendations(movieData);
             fetchWatchProviders();
         } catch (error) {
@@ -398,10 +404,133 @@ export default function MovieDetail() {
         }
     };
 
+    const handleSubmitReview = async (e) => {
+        e.preventDefault();
+        if (!user?.id || !reviewText.trim()) return;
+        setSubmittingReview(true);
+        try {
+            const result = await reviewService.createReview(
+                user.id, parseInt(id), 'MOVIE', 5, reviewText.trim()
+            );
+            if (result.success) {
+                setReviewText('');
+                setShowReviewForm(false);
+                fetchContentReviews();
+            }
+        } catch (err) {
+            console.error('Error submitting review:', err);
+        } finally {
+            setSubmittingReview(false);
+        }
+    };
+
+    const handleDeleteReview = async (reviewId, reviewUserId) => {
+        if (!user?.id) return;
+        const isAdmin = user.role === 'ADMIN';
+        const isOwner = user.id === reviewUserId;
+        let result;
+        if (isOwner) {
+            result = await reviewService.deleteReview(reviewId, user.id);
+        } else if (isAdmin) {
+            result = await reviewService.adminDeleteReview(reviewId);
+        } else {
+            return;
+        }
+        if (result.success) {
+            setReviews(prev => prev.filter(r => r.id !== reviewId));
+        }
+    };
+
     if (loading) {
         return (
-            <div className="min-h-screen flex justify-center items-center" style={{ backgroundColor: '#071427' }}>
-                <RingLoader color="#7C3AED" />
+            <div className="min-h-screen" style={{ backgroundColor: '#071427' }}>
+                {/* Backdrop Skeleton */}
+                <div className="relative h-[400px]">
+                    <Skeleton
+                        variant="rectangular"
+                        width="100%"
+                        height="100%"
+                        sx={{ bgcolor: 'rgba(255, 255, 255, 0.05)' }}
+                    />
+                </div>
+
+                <div className="max-w-6xl mx-auto px-6 py-8">
+                    {/* Title and Info */}
+                    <div className="mb-6">
+                        <Skeleton
+                            variant="text"
+                            width="60%"
+                            height={60}
+                            sx={{ bgcolor: 'rgba(255, 255, 255, 0.1)' }}
+                        />
+                        <Skeleton
+                            variant="text"
+                            width="40%"
+                            height={30}
+                            sx={{ bgcolor: 'rgba(255, 255, 255, 0.1)', mt: 2 }}
+                        />
+                    </div>
+
+                    {/* Action buttons skeleton */}
+                    <div className="flex gap-3 mb-8">
+                        {[...Array(4)].map((_, i) => (
+                            <Skeleton
+                                key={i}
+                                variant="circular"
+                                width={48}
+                                height={48}
+                                sx={{ bgcolor: 'rgba(255, 255, 255, 0.1)' }}
+                            />
+                        ))}
+                    </div>
+
+                    {/* Overview skeleton */}
+                    <div className="mb-8">
+                        <Skeleton
+                            variant="text"
+                            width="25%"
+                            height={40}
+                            sx={{ bgcolor: 'rgba(255, 255, 255, 0.1)', mb: 2 }}
+                        />
+                        {[...Array(4)].map((_, i) => (
+                            <Skeleton
+                                key={i}
+                                variant="text"
+                                width="100%"
+                                height={24}
+                                sx={{ bgcolor: 'rgba(255, 255, 255, 0.1)', mb: 1 }}
+                            />
+                        ))}
+                    </div>
+
+                    {/* Cast skeleton */}
+                    <div className="mb-8">
+                        <Skeleton
+                            variant="text"
+                            width="15%"
+                            height={40}
+                            sx={{ bgcolor: 'rgba(255, 255, 255, 0.1)', mb: 2 }}
+                        />
+                        <div className="flex gap-4 overflow-hidden">
+                            {[...Array(6)].map((_, i) => (
+                                <div key={i} className="flex-shrink-0">
+                                    <Skeleton
+                                        variant="circular"
+                                        width={80}
+                                        height={80}
+                                        sx={{ bgcolor: 'rgba(255, 255, 255, 0.1)' }}
+                                    />
+                                    <Skeleton
+                                        variant="text"
+                                        width={80}
+                                        height={20}
+                                        sx={{ bgcolor: 'rgba(255, 255, 255, 0.1)', mt: 1 }}
+                                    />
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
             </div>
         );
     }
@@ -411,7 +540,7 @@ export default function MovieDetail() {
             <div className="min-h-screen flex justify-center items-center text-white" style={{ backgroundColor: '#071427' }}>
                 <div className="text-center">
                     <h2 className="text-2xl mb-4">Movie not found</h2>
-                    <button onClick={() => navigate(-1)} className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
+                    <button onClick={() => navigate(-1)} className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-600/90 transition-colors">
                         Go Back
                     </button>
                 </div>
@@ -478,7 +607,7 @@ export default function MovieDetail() {
                                     loading="eager"
                                 />
                             ) : (
-                                <div className="w-full aspect-[2/3] rounded-lg bg-gray-800/60 flex items-center justify-center ring-1 ring-white/10">
+                                <div className="w-full aspect-[2/3] rounded-lg bg-gray-900/60 flex items-center justify-center ring-1 ring-white/10">
                                     <Film size={24} className="text-gray-600" />
                                 </div>
                             )}
@@ -509,7 +638,7 @@ export default function MovieDetail() {
                         <button
                             onClick={handleToggleWatched}
                             className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all ${isWatched
-                                ? 'bg-purple-600 hover:bg-purple-700 text-white'
+                                ? 'bg-purple-600 hover:bg-purple-600/90 text-white'
                                 : 'bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10'
                                 }`}
                         >
@@ -529,7 +658,7 @@ export default function MovieDetail() {
                         <button
                             onClick={handleToggleWatchlist}
                             className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all ${isWatchlisted
-                                ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                                ? 'bg-purple-600 hover:bg-purple-600/90 text-white'
                                 : 'bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10'
                                 }`}
                         >
@@ -550,7 +679,7 @@ export default function MovieDetail() {
                         <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-2 text-center">Rate</h3>
                         {isRatingLoading ? (
                             <div className="flex justify-center py-4">
-                                <RingLoader size={30} color="#a855f7" />
+                                <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
                             </div>
                         ) : (
                             <StarRatingSelector
@@ -572,7 +701,7 @@ export default function MovieDetail() {
                             {movie.genres.map(g => (
                                 <span
                                     key={g.id}
-                                    className="px-2 py-0.5 text-xs rounded-full bg-purple-500/10 text-purple-300 border border-purple-500/25 font-medium"
+                                    className="px-2 py-0.5 text-xs rounded-full bg-purple-600/10 text-purple-600 border border-purple-600/25 font-medium"
                                 >
                                     {g.name}
                                 </span>
@@ -657,7 +786,7 @@ export default function MovieDetail() {
                                                 loading="lazy"
                                             />
                                         ) : (
-                                            <div className="w-20 h-20 rounded-full bg-gray-800/60 flex items-center justify-center ring-1 ring-white/10 mb-1.5">
+                                            <div className="w-20 h-20 rounded-full bg-gray-900/60 flex items-center justify-center ring-1 ring-white/10 mb-1.5">
                                                 <User size={20} className="text-gray-600" />
                                             </div>
                                         )}
@@ -669,53 +798,76 @@ export default function MovieDetail() {
                     )}
 
                     {/* Reviews - Mobile */}
-                    {reviews.length > 0 && (
-                        <div className="mb-4">
-                            <h2 className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-3 flex items-center gap-2">
-                                <MessageSquare size={14} /> Reviews
+                    <div className="mb-4">
+                        <div className="flex items-center justify-between mb-3">
+                            <h2 className="text-xs font-bold uppercase tracking-widest text-gray-500 flex items-center gap-2">
+                                <MessageSquare size={14} /> Reviews ({reviews.length})
                             </h2>
-                            <div className="space-y-3">
-                                {reviews.slice(0, 3).map(review => {
-                                    const avatarPath = review.author_details.avatar_path;
-                                    const avatarUrl = avatarPath
-                                        ? avatarPath.startsWith('/https')
-                                            ? avatarPath.substring(1)
-                                            : `https://image.tmdb.org/t/p/w185${avatarPath}`
-                                        : null;
+                            {user?.id && (
+                                <button
+                                    onClick={() => setShowReviewForm(v => !v)}
+                                    className="text-xs font-medium text-purple-400 hover:text-purple-300 transition-colors"
+                                >
+                                    {showReviewForm ? 'Cancel' : '+ Write a Review'}
+                                </button>
+                            )}
+                        </div>
 
-                                    return (
-                                        <article key={review.id} className="bg-white/5 rounded-lg p-3 border border-white/[0.08]">
-                                            <div className="flex items-start gap-2 mb-2">
-                                                <div className="flex-shrink-0">
-                                                    {avatarUrl ? (
-                                                        <img
-                                                            src={avatarUrl}
-                                                            alt={review.author}
-                                                            className="w-8 h-8 rounded-full object-cover ring-1 ring-white/10"
-                                                            loading="lazy"
-                                                        />
-                                                    ) : (
-                                                        <div className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center ring-1 ring-white/10">
-                                                            <User size={14} className="text-gray-500" />
-                                                        </div>
-                                                    )}
+                        {/* Review Form - Mobile */}
+                        {showReviewForm && user?.id && (
+                            <form onSubmit={handleSubmitReview} className="bg-white/5 rounded-lg p-3 border border-white/[0.08] mb-3">
+                                <textarea
+                                    value={reviewText}
+                                    onChange={e => setReviewText(e.target.value)}
+                                    placeholder="Write your review..."
+                                    rows={4}
+                                    className="w-full bg-gray-800/60 text-white text-sm rounded-lg px-3 py-2 border border-white/10 focus:outline-none focus:border-purple-500 resize-none mb-2"
+                                />
+                                <div className="flex justify-end">
+                                    <button
+                                        type="submit"
+                                        disabled={submittingReview || !reviewText.trim()}
+                                        className="text-xs bg-purple-600 hover:bg-purple-500 disabled:opacity-40 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                                    >
+                                        {submittingReview ? 'Posting…' : 'Post Review'}
+                                    </button>
+                                </div>
+                            </form>
+                        )}
+
+                        {reviews.length > 0 ? (
+                            <div className="space-y-3">
+                                {reviews.slice(0, 3).map(review => (
+                                    <article key={review.id} className="bg-white/5 rounded-lg p-3 border border-white/[0.08]">
+                                        <div className="flex items-start justify-between gap-2 mb-2">
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-8 h-8 rounded-full bg-purple-600/25 flex items-center justify-center text-purple-400 text-xs font-bold ring-1 ring-purple-500/25 flex-shrink-0">
+                                                    {review.username?.[0]?.toUpperCase()}
                                                 </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-xs font-semibold text-gray-200">{review.author}</p>
-                                                    {review.author_details.rating && (
-                                                        <div className="flex items-center gap-1 mt-0.5">
-                                                            <StarRating rating={review.author_details.rating} />
-                                                        </div>
-                                                    )}
+                                                <div>
+                                                    <p className="text-xs font-semibold text-gray-200">{review.username}</p>
+                                                    <span className="text-[10px] text-gray-500">
+                                                        {new Date(review.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                                                    </span>
                                                 </div>
                                             </div>
-                                            <ReviewContent content={review.content} maxLength={200} />
-                                        </article>
-                                    );
-                                })}
+                                            {(user?.id === review.userId || user?.role === 'ADMIN') && (
+                                                <button
+                                                    onClick={() => handleDeleteReview(review.id, review.userId)}
+                                                    className="text-xs text-red-400 hover:text-red-300 transition-colors"
+                                                >
+                                                    {user?.id === review.userId ? 'Delete' : 'Remove'}
+                                                </button>
+                                            )}
+                                        </div>
+                                        <ReviewContent content={review.reviewText || ''} />
+                                    </article>
+                                ))}
                             </div>
-                        </div>
-                    )}
+                        ) : (
+                            <p className="text-sm text-gray-600 py-1">No reviews yet. Be the first to write one!</p>
+                        )}
+                    </div>
 
                     {/* Recommendations - Mobile */}
                     {recommendations.length > 0 && (
@@ -736,11 +888,11 @@ export default function MovieDetail() {
                                                 loading="lazy"
                                             />
                                         ) : (
-                                            <div className="w-full aspect-[2/3] rounded-lg bg-gray-800/60 flex items-center justify-center ring-1 ring-white/10 mb-1">
+                                            <div className="w-full aspect-[2/3] rounded-lg bg-gray-900/60 flex items-center justify-center ring-1 ring-white/10 mb-1">
                                                 <Film size={16} className="text-gray-600" />
                                             </div>
                                         )}
-                                        <p className="text-xs text-gray-300 leading-tight line-clamp-2 group-hover:text-purple-300 transition-colors">
+                                        <p className="text-xs text-gray-300 leading-tight line-clamp-2 group-hover:text-purple-600 transition-colors">
                                             {rec.title}
                                         </p>
                                     </button>
@@ -766,7 +918,7 @@ export default function MovieDetail() {
                                     loading="eager"
                                 />
                             ) : (
-                                <div className="w-full aspect-[2/3] rounded-xl bg-gray-800/60 flex items-center justify-center ring-1 ring-white/10">
+                                <div className="w-full aspect-[2/3] rounded-xl bg-gray-900/60 flex items-center justify-center ring-1 ring-white/10">
                                     <Film size={36} className="text-gray-600" />
                                 </div>
                             )}
@@ -777,7 +929,7 @@ export default function MovieDetail() {
                             <button
                                 onClick={handleToggleWatched}
                                 className={`w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${isWatched
-                                    ? 'bg-purple-600 hover:bg-purple-700 text-white shadow-lg shadow-purple-900/40'
+                                    ? 'bg-purple-600 hover:bg-purple-600/90 text-white shadow-lg shadow-purple-900/40'
                                     : 'bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10'
                                     }`}
                             >
@@ -797,7 +949,7 @@ export default function MovieDetail() {
                             <button
                                 onClick={handleToggleWatchlist}
                                 className={`w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${isWatchlisted
-                                    ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-900/40'
+                                    ? 'bg-purple-600 hover:bg-purple-600/90 text-white shadow-lg shadow-blue-900/40'
                                     : 'bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10'
                                     }`}
                             >
@@ -818,7 +970,7 @@ export default function MovieDetail() {
                             <h3 className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-3 text-center">Rate</h3>
                             {isRatingLoading ? (
                                 <div className="flex justify-center py-4">
-                                    <RingLoader size={30} color="#a855f7" />
+                                    <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
                                 </div>
                             ) : (
                                 <StarRatingSelector
@@ -862,7 +1014,7 @@ export default function MovieDetail() {
                                         href={watchProviders.link}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="mt-2 inline-flex items-center gap-1 text-[11px] text-purple-400 hover:text-purple-300 transition-colors"
+                                        className="mt-2 inline-flex items-center gap-1 text-[11px] text-purple-600 hover:text-purple-600 transition-colors"
                                     >
                                         <ExternalLink size={9} /> All options
                                     </a>
@@ -917,7 +1069,7 @@ export default function MovieDetail() {
                                         <span
                                             key={g.id}
                                             role="listitem"
-                                            className="px-2.5 py-0.5 text-xs rounded-full bg-purple-500/10 text-purple-300 border border-purple-500/25 font-medium"
+                                            className="px-2.5 py-0.5 text-xs rounded-full bg-purple-600/10 text-purple-600 border border-purple-600/25 font-medium"
                                         >
                                             {g.name}
                                         </span>
@@ -1010,7 +1162,7 @@ export default function MovieDetail() {
                                                     loading="lazy"
                                                 />
                                             ) : (
-                                                <div className="w-full aspect-[2/3] rounded-lg bg-gray-800/60 flex items-center justify-center ring-1 ring-white/10">
+                                                <div className="w-full aspect-[2/3] rounded-lg bg-gray-900/60 flex items-center justify-center ring-1 ring-white/10">
                                                     <User size={18} className="text-gray-600" />
                                                 </div>
                                             )}
@@ -1024,65 +1176,94 @@ export default function MovieDetail() {
 
                         {/* Reviews */}
                         <section aria-labelledby="reviews-heading" className="mb-6 pb-6 border-b border-white/[0.06]">
-                            <h2 id="reviews-heading" className="section-label flex items-center gap-1.5">
-                                <MessageSquare size={11} /> Reviews
-                                {reviews.length > 0 && (
+                            <div className="flex items-center justify-between mb-3">
+                                <h2 id="reviews-heading" className="section-label flex items-center gap-1.5 mb-0">
+                                    <MessageSquare size={11} /> Reviews
                                     <span className="text-gray-600 font-normal ml-1">({reviews.length})</span>
+                                </h2>
+                                {user?.id && (
+                                    <button
+                                        onClick={() => setShowReviewForm(v => !v)}
+                                        className="text-sm font-medium text-purple-400 hover:text-purple-300 transition-colors"
+                                    >
+                                        {showReviewForm ? 'Cancel' : '+ Write a Review'}
+                                    </button>
                                 )}
-                            </h2>
+                            </div>
+
+                            {/* Review Form - Desktop */}
+                            {showReviewForm && user?.id && (
+                                <form onSubmit={handleSubmitReview} className="p-4 rounded-xl bg-white/[0.035] border border-white/[0.07] mb-4">
+                                    <div className="flex items-center gap-3 mb-3">
+                                        <div className="w-8 h-8 rounded-full bg-purple-600/25 flex items-center justify-center text-purple-400 text-xs font-bold ring-1 ring-purple-500/25 flex-shrink-0">
+                                            {user.username?.[0]?.toUpperCase()}
+                                        </div>
+                                        <span className="text-sm font-medium text-gray-200">{user.username}</span>
+                                    </div>
+                                    <textarea
+                                        value={reviewText}
+                                        onChange={e => setReviewText(e.target.value)}
+                                        placeholder="Share your thoughts about this movie..."
+                                        rows={4}
+                                        className="w-full bg-gray-800/60 text-white text-sm rounded-lg px-3 py-2 border border-white/10 focus:outline-none focus:border-purple-500 resize-none mb-3"
+                                        autoFocus
+                                    />
+                                    <div className="flex justify-end gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowReviewForm(false)}
+                                            className="text-xs text-gray-400 hover:text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            type="submit"
+                                            disabled={submittingReview || !reviewText.trim()}
+                                            className="text-xs bg-purple-600 hover:bg-purple-500 disabled:opacity-40 text-white px-5 py-2 rounded-lg font-medium transition-colors"
+                                        >
+                                            {submittingReview ? 'Posting…' : 'Post Review'}
+                                        </button>
+                                    </div>
+                                </form>
+                            )}
 
                             {reviews.length > 0 ? (
                                 <>
                                     <div className="space-y-3">
-                                        {(showAllReviews ? reviews : reviews.slice(0, 3)).map(review => {
-                                            const avatarPath = review.author_details?.avatar_path;
-                                            const avatarUrl = avatarPath
-                                                ? avatarPath.startsWith('/https')
-                                                    ? avatarPath.slice(1)
-                                                    : `https://image.tmdb.org/t/p/w45${avatarPath}`
-                                                : null;
-                                            return (
-                                                <article
-                                                    key={review.id}
-                                                    className="p-4 rounded-xl bg-white/[0.035] border border-white/[0.07] hover:bg-white/[0.055] transition-colors"
-                                                >
-                                                    <div className="flex items-start justify-between gap-3 mb-2.5">
-                                                        <div className="flex items-center gap-2.5">
-                                                            {avatarUrl ? (
-                                                                <img
-                                                                    src={avatarUrl}
-                                                                    alt={review.author}
-                                                                    className="w-8 h-8 rounded-full object-cover ring-1 ring-white/20 flex-shrink-0"
-                                                                    loading="lazy"
-                                                                />
-                                                            ) : (
-                                                                <div className="w-8 h-8 rounded-full bg-purple-600/25 flex items-center justify-center text-purple-300 text-xs font-bold ring-1 ring-purple-500/25 flex-shrink-0">
-                                                                    {review.author?.[0]?.toUpperCase()}
-                                                                </div>
-                                                            )}
-                                                            <div>
-                                                                <p className="text-sm font-semibold text-gray-200 leading-none">{review.author}</p>
-                                                                <time
-                                                                    dateTime={review.created_at}
-                                                                    className="text-[11px] text-gray-500"
-                                                                >
-                                                                    {new Date(review.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
-                                                                </time>
-                                                            </div>
+                                        {(showAllReviews ? reviews : reviews.slice(0, 3)).map(review => (
+                                            <article
+                                                key={review.id}
+                                                className="p-4 rounded-xl bg-white/[0.035] border border-white/[0.07] hover:bg-white/[0.055] transition-colors"
+                                            >
+                                                <div className="flex items-start justify-between gap-3 mb-2.5">
+                                                    <div className="flex items-center gap-2.5">
+                                                        <div className="w-8 h-8 rounded-full bg-purple-600/25 flex items-center justify-center text-purple-400 text-xs font-bold ring-1 ring-purple-500/25 flex-shrink-0">
+                                                            {review.username?.[0]?.toUpperCase()}
                                                         </div>
-                                                        {review.author_details?.rating > 0 && (
-                                                            <div className="flex items-center gap-1.5 flex-shrink-0">
-                                                                <StarRating rating={review.author_details.rating} />
-                                                                <span className="text-xs text-green-400 font-semibold">
-                                                                    {review.author_details.rating}/10
-                                                                </span>
-                                                            </div>
+                                                        <div>
+                                                            <p className="text-sm font-semibold text-gray-200 leading-none">{review.username}</p>
+                                                            <time
+                                                                dateTime={review.createdAt}
+                                                                className="text-[11px] text-gray-500"
+                                                            >
+                                                                {new Date(review.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                                                            </time>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center gap-3 flex-shrink-0">
+                                                        {(user?.id === review.userId || user?.role === 'ADMIN') && (
+                                                            <button
+                                                                onClick={() => handleDeleteReview(review.id, review.userId)}
+                                                                className="text-xs text-red-400 hover:text-red-300 transition-colors"
+                                                            >
+                                                                {user?.id === review.userId ? 'Delete' : 'Remove'}
+                                                            </button>
                                                         )}
                                                     </div>
-                                                    <ReviewContent content={review.content} />
-                                                </article>
-                                            );
-                                        })}
+                                                </div>
+                                                <ReviewContent content={review.reviewText || ''} />
+                                            </article>
+                                        ))}
                                     </div>
                                     {reviews.length > 3 && (
                                         <button
@@ -1094,7 +1275,7 @@ export default function MovieDetail() {
                                     )}
                                 </>
                             ) : (
-                                <p className="text-sm text-gray-600 py-1">No reviews available for this movie.</p>
+                                <p className="text-sm text-gray-600 py-1">No reviews yet. Be the first to write one!</p>
                             )}
                         </section>
 
@@ -1106,7 +1287,7 @@ export default function MovieDetail() {
                                 </h2>
                                 {recommendationsLoading ? (
                                     <div className="flex justify-center py-6">
-                                        <RingLoader color="#7C3AED" size={30} />
+                                        <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
                                     </div>
                                 ) : (
                                     <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-2 sm:gap-3">
@@ -1128,7 +1309,7 @@ export default function MovieDetail() {
                                                         loading="lazy"
                                                     />
                                                 ) : (
-                                                    <div className="w-full aspect-[2/3] rounded-lg bg-gray-800/60 flex items-center justify-center ring-1 ring-white/10">
+                                                    <div className="w-full aspect-[2/3] rounded-lg bg-gray-900/60 flex items-center justify-center ring-1 ring-white/10">
                                                         <Film size={16} className="text-gray-600" />
                                                     </div>
                                                 )}

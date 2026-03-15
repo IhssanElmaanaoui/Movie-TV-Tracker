@@ -3,57 +3,66 @@ import { useNavigate } from 'react-router-dom';
 import { authService, userStorage } from '../services/authService';
 import './Login.css';
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function validateEmail(value) {
+  if (!value.trim()) return 'Email is required';
+  if (!EMAIL_REGEX.test(value.trim())) return 'Please enter a valid email address';
+  return '';
+}
+
+function validatePassword(value) {
+  if (!value) return 'Password is required';
+  return '';
+}
+
 export default function Login() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [touched, setTouched] = useState({ email: false, password: false });
 
-  // Check if form fields are filled
-  const isFormValid = email.trim() && password.trim();
+  const isFormValid = email.trim() && password.trim() && !validateEmail(email) && !validatePassword(password);
+
+  const handleBlur = (field) => {
+    setTouched(prev => ({ ...prev, [field]: true }));
+    if (field === 'email') setEmailError(validateEmail(email));
+    if (field === 'password') setPasswordError(validatePassword(password));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
-    // Validation
-    if (!email.trim()) {
-      setError('Email is required');
-      return;
-    }
+    const eErr = validateEmail(email);
+    const pErr = validatePassword(password);
+    setEmailError(eErr);
+    setPasswordError(pErr);
+    setTouched({ email: true, password: true });
+    if (eErr || pErr) return;
 
-    if (!password.trim()) {
-      setError('Password is required');
-      return;
-    }
-
-    // Email validation regex
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      setError('Please enter a valid email address');
-      return;
-    }
-
-    // Handle login with API call
     setIsLoading(true);
     try {
       const result = await authService.login({ email, password });
 
       if (result.success) {
-        // Store user data in localStorage
         userStorage.setUser(result.data);
-        console.log('Login successful:', result.data);
-
-        // Navigate back to dashboard
         navigate('/');
       } else {
-        // Handle error from API
-        if (result.error.validationErrors) {
-          const firstError = Object.values(result.error.validationErrors)[0];
-          setError(firstError);
+        // result.error can be: a string, an object with .message, or an object with .validationErrors
+        const err = result.error;
+        if (typeof err === 'string') {
+          setError(err);
+        } else if (err?.validationErrors) {
+          setError(Object.values(err.validationErrors)[0]);
+        } else if (err?.message) {
+          setError(err.message);
         } else {
-          setError(result.error.message || 'Login failed. Please try again.');
+          setError('Login failed. Please try again.');
         }
       }
     } catch (err) {
@@ -72,7 +81,15 @@ export default function Login() {
           <h1 className="login-title">Projection</h1>
           <p className="login-subtitle">Sign in to your account</p>
 
-          {error && <div className="login-error">{error}</div>}
+          {error && (
+            <div className="login-error" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              {(error.toLowerCase().includes('ban') || error.toLowerCase().includes('deactivat')) && (
+                <strong style={{ fontSize: '14px' }}>🚫 Account Banned</strong>
+              )}
+              <span>{error}</span>
+            </div>
+          )}
+
 
           <form onSubmit={handleSubmit} className="login-form">
             <div className="form-group">
@@ -82,11 +99,16 @@ export default function Login() {
               <input
                 id="email"
                 type="email"
-                className="form-input"
+                className={`form-input${touched.email && emailError ? ' input-error' : ''}`}
                 placeholder="Enter your email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (touched.email) setEmailError(validateEmail(e.target.value));
+                }}
+                onBlur={() => handleBlur('email')}
               />
+              {touched.email && emailError && <span className="field-error">{emailError}</span>}
             </div>
 
             <div className="form-group">
@@ -96,11 +118,16 @@ export default function Login() {
               <input
                 id="password"
                 type="password"
-                className="form-input"
+                className={`form-input${touched.password && passwordError ? ' input-error' : ''}`}
                 placeholder="Enter your password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (touched.password) setPasswordError(validatePassword(e.target.value));
+                }}
+                onBlur={() => handleBlur('password')}
               />
+              {touched.password && passwordError && <span className="field-error">{passwordError}</span>}
             </div>
 
             <button
