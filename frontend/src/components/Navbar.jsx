@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { flushSync } from 'react-dom';
 import { useNavigate, useLocation } from "react-router-dom";
-import { Search, UserCircle, Menu, X, Home, Film, Tv, Clock, BookmarkCheck, MessageCircle, Users, UserPlus } from "lucide-react";
+import { Search, UserCircle, X, Home, Film, Tv, Clock, BookmarkCheck, MessageCircle, Users, UserPlus } from "lucide-react";
 import SockJS from 'sockjs-client';
 import { Stomp } from '@stomp/stompjs';
 import projectionLogo from "../../../logos/projection.png";
@@ -21,7 +21,6 @@ export default function Navbar({ onSignUpClick }) {
   const [genreOpen, setGenreOpen] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
-  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showMobileSearch, setShowMobileSearch] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [newFollowersCount, setNewFollowersCount] = useState(0);
@@ -37,7 +36,6 @@ export default function Navbar({ onSignUpClick }) {
 
   const profileRef = useRef(null);
   const searchRef = useRef(null);
-  const mobileMenuRef = useRef(null);
   const connectionsRef = useRef(null);
 
   const TOKEN = import.meta.env.VITE_TMDB_BEARER_TOKEN;
@@ -85,9 +83,6 @@ export default function Navbar({ onSignUpClick }) {
       if (searchRef.current && !searchRef.current.contains(event.target)) {
         setShowSuggestions(false);
       }
-      if (mobileMenuRef.current && !mobileMenuRef.current.contains(event.target)) {
-        setShowMobileMenu(false);
-      }
       if (connectionsRef.current && !connectionsRef.current.contains(event.target)) {
         setShowConnections(false);
       }
@@ -97,7 +92,7 @@ export default function Navbar({ onSignUpClick }) {
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [profileOpen, showSuggestions, showMobileMenu]);
+  }, [profileOpen, showSuggestions]);
 
   // Fetch followers for new follower notifications
   useEffect(() => {
@@ -793,87 +788,6 @@ export default function Navbar({ onSignUpClick }) {
             </div>
           )}
 
-          {/* Menu Button with Popup */}
-          <div className="relative" ref={mobileMenuRef}>
-            <button
-              onClick={() => setShowMobileMenu(!showMobileMenu)}
-              className="flex flex-col items-center gap-1 text-gray-300 hover:text-white transition"
-            >
-              <Menu size={24} />
-              <span className="text-xs font-medium">Menu</span>
-            </button>
-
-            {/* Menu Popup (Similar to Add Menu Design) */}
-            {showMobileMenu && (
-              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-white backdrop-filter backdrop-blur-lg rounded-lg shadow-2xl min-w-[220px] overflow-hidden animate-slideDown">
-
-                {/* Content Category */}
-                <div className="border-b border-gray-200 px-3 py-2 bg-gray-50">
-                  <p className="text-xs font-bold text-gray-600 uppercase tracking-wide">Content</p>
-                </div>
-
-                <button
-                  onClick={() => {
-                    navigate("/movies");
-                    setShowMobileMenu(false);
-                  }}
-                  className="w-full px-4 py-3 flex items-center gap-3 text-gray-900 hover:bg-gray-100 transition-colors"
-                >
-                  <Film size={20} className="flex-shrink-0" />
-                  <span className="font-medium text-sm">Movies</span>
-                </button>
-
-                <button
-                  onClick={() => {
-                    navigate("/series");
-                    setShowMobileMenu(false);
-                  }}
-                  className="w-full px-4 py-3 flex items-center gap-3 text-gray-900 hover:bg-gray-100 transition-colors"
-                >
-                  <Tv size={20} className="flex-shrink-0" />
-                  <span className="font-medium text-sm">Series</span>
-                </button>
-
-                <button
-                  onClick={() => {
-                    navigate("/community");
-                    setShowMobileMenu(false);
-                  }}
-                  className="w-full px-4 py-3 flex items-center gap-3 text-gray-900 hover:bg-gray-100 transition-colors border-b border-gray-200"
-                >
-                  <Users size={20} className="flex-shrink-0" />
-                  <span className="font-medium text-sm">Community</span>
-                </button>
-
-                {/* Personal Category */}
-                <div className="border-b border-gray-200 px-3 py-2 bg-gray-50">
-                  <p className="text-xs font-bold text-gray-600 uppercase tracking-wide">Personal</p>
-                </div>
-
-                <button
-                  onClick={() => {
-                    navigate("/history");
-                    setShowMobileMenu(false);
-                  }}
-                  className="w-full px-4 py-3 flex items-center gap-3 text-gray-900 hover:bg-gray-100 transition-colors"
-                >
-                  <Clock size={20} className="flex-shrink-0" />
-                  <span className="font-medium text-sm">History</span>
-                </button>
-
-                <button
-                  onClick={() => {
-                    navigate("/watchlist");
-                    setShowMobileMenu(false);
-                  }}
-                  className="w-full px-4 py-3 flex items-center gap-3 text-gray-900 hover:bg-gray-100 transition-colors"
-                >
-                  <BookmarkCheck size={20} className="flex-shrink-0" />
-                  <span className="font-medium text-sm">Watchlist</span>
-                </button>
-              </div>
-            )}
-          </div>
         </div>
       </div>
 
