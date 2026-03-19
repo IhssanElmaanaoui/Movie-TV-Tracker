@@ -81,9 +81,10 @@ export default function ChatBot() {
 
     (async () => {
       try {
-        const [detailsRes, creditsRes] = await Promise.all([
+        const [detailsRes, creditsRes, recommendationsRes] = await Promise.all([
           fetchTmdb(`${basePath}?language=en-US`),
           fetchTmdb(`${basePath}/credits?language=en-US`),
+          fetchTmdb(`${basePath}/recommendations?language=en-US`),
         ]);
         if (cancelled) return;
         
@@ -100,6 +101,12 @@ export default function ChatBot() {
           ?.map((c) => c.name)
           .slice(0, 3)
           .join(", ") || "";
+        
+        // Extract recommended movies
+        const recommendations = (recommendationsRes.results || []).slice(0, 6).map((m) => ({
+          title: m.title || m.name,
+          year: m.release_date?.slice(0, 4) || m.first_air_date?.slice(0, 4) || "N/A",
+        }));
 
         setMovieDetails({
           ...detailsRes,
@@ -107,6 +114,7 @@ export default function ChatBot() {
           writers,
           cast,
           producers,
+          recommendations,
           overview: detailsRes.overview || "",
           title: detailsRes.title || detailsRes.name,
           release_date: detailsRes.release_date || detailsRes.first_air_date,
@@ -389,6 +397,26 @@ export default function ChatBot() {
       return;
     }
 
+    // 💡 SIMILAR MOVIES / RECOMMENDATIONS
+    if (lower.includes("recommend") || lower.includes("similar") || lower.includes("like this") || lower.includes("suggest") || lower.includes("watch next")) {
+      const recommendations = movieDetails?.recommendations || [];
+      if (recommendations.length > 0) {
+        const list = recommendations
+          .map((m) => `• ${m.title} (${m.year})`)
+          .join("\n");
+        addMessage(
+          "assistant",
+          `If you liked ${title}, you might enjoy:\n\n${list}`
+        );
+      } else {
+        addMessage(
+          "assistant",
+          `I don't have recommendations for ${title} right now, but you can try movies by the same director or in the same genre!`
+        );
+      }
+      return;
+    }
+
     // Generic fallback - provide a summary of available info
     const summary = `I know a lot about ${title}! You can ask me:
 • Who directed it
@@ -402,6 +430,7 @@ export default function ChatBot() {
 • Production companies
 • Languages
 • Genres
+• Similar movies / Recommendations
 • And more!
 
 What would you like to know?`;
