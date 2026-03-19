@@ -243,6 +243,38 @@
   background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
 }
 
+.oauth-divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin-top: 0.2rem;
+  color: #94a3b8;
+  font-size: 0.85rem;
+}
+
+.oauth-divider::before,
+.oauth-divider::after {
+  content: "";
+  flex: 1;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+.oauth-divider span {
+  padding: 0 0.75rem;
+}
+
+.google-auth-container {
+  display: flex;
+  justify-content: center;
+}
+
+.oauth-hint {
+  text-align: center;
+  margin: 0;
+  color: #94a3b8;
+  font-size: 0.85rem;
+}
+
 .login-footer {
   text-align: center;
   margin-top: 2rem;

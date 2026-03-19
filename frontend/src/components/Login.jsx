@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authService, userStorage } from '../services/authService';
+import { GOOGLE_CLIENT_ID, loadGoogleIdentityScript } from '../services/googleAuth';
 import './Login.css';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -22,9 +23,11 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [touched, setTouched] = useState({ email: false, password: false });
+  const googleButtonRef = useRef(null);
 
   const isFormValid = email.trim() && password.trim() && !validateEmail(email) && !validatePassword(password);
 
@@ -72,6 +75,62 @@ export default function Login() {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    const initGoogleButton = async () => {
+      if (!GOOGLE_CLIENT_ID || !googleButtonRef.current) {
+        return;
+      }
+
+      try {
+        await loadGoogleIdentityScript();
+        if (isCancelled || !window.google?.accounts?.id || !googleButtonRef.current) return;
+
+        window.google.accounts.id.initialize({
+          client_id: GOOGLE_CLIENT_ID,
+          callback: async (response) => {
+            if (!response?.credential) return;
+            setError('');
+            setIsGoogleLoading(true);
+
+            try {
+              const result = await authService.googleAuth({ idToken: response.credential });
+              if (result.success) {
+                userStorage.setUser(result.data);
+                navigate('/');
+              } else {
+                console.error('Google login failed:', result.error?.raw || result.error);
+                setError(result.error?.message || 'Google login failed. Please try again.');
+              }
+            } catch (err) {
+              console.error('Google login error:', err);
+              setError('Google login failed. Please try again.');
+            } finally {
+              setIsGoogleLoading(false);
+            }
+          },
+        });
+
+        googleButtonRef.current.innerHTML = '';
+        window.google.accounts.id.renderButton(googleButtonRef.current, {
+          theme: 'outline',
+          size: 'large',
+          width: 360,
+          text: 'continue_with',
+          shape: 'pill',
+        });
+      } catch (err) {
+        console.error('Failed to initialize Google Sign-In:', err);
+      }
+    };
+
+    initGoogleButton();
+    return () => {
+      isCancelled = true;
+    };
+  }, [navigate]);
 
   return (
     <div className="login-container">
@@ -137,6 +196,14 @@ export default function Login() {
             >
               {isLoading ? 'Logging in...' : 'Login'}
             </button>
+
+            <div className="oauth-divider"><span>or</span></div>
+            {GOOGLE_CLIENT_ID ? (
+              <div className="google-auth-container" ref={googleButtonRef} />
+            ) : (
+              <p className="oauth-hint">Set VITE_GOOGLE_CLIENT_ID to enable Google Sign-In.</p>
+            )}
+            {isGoogleLoading && <p className="oauth-hint">Signing in with Google...</p>}
           </form>
 
           <div className="login-footer">

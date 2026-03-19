@@ -40,6 +40,23 @@ export default function Navbar({ onSignUpClick }) {
 
   const TOKEN = import.meta.env.VITE_TMDB_BEARER_TOKEN;
 
+  const getProfileImageSrc = (profilePictureUrl) => {
+    if (!profilePictureUrl) return "";
+    return profilePictureUrl.startsWith('http')
+      ? profilePictureUrl
+      : `http://localhost:8080/api/users/profile-picture/${profilePictureUrl}`;
+  };
+
+  const getAvatarFallbackUrl = (username) =>
+    `https://ui-avatars.com/api/?name=${encodeURIComponent(username || 'User')}&background=1f2937&color=ffffff&bold=true`;
+
+  const handleAvatarError = (event, username) => {
+    const fallback = getAvatarFallbackUrl(username);
+    if (event.currentTarget.src !== fallback) {
+      event.currentTarget.src = fallback;
+    }
+  };
+
   const genres = [
     "Action",
     "Adventure",
@@ -549,7 +566,13 @@ export default function Navbar({ onSignUpClick }) {
                                 onClick={() => { setShowConnections(false); navigate(`/user/${follower.id}`); }}
                               >
                                 {follower.profilePictureUrl ? (
-                                  <img src={follower.profilePictureUrl.startsWith('http') ? follower.profilePictureUrl : `/api/users/profile-picture/${follower.profilePictureUrl}`} alt={follower.username} className="w-full h-full object-cover" />
+                                  <img
+                                    src={getProfileImageSrc(follower.profilePictureUrl)}
+                                    alt={follower.username}
+                                    className="w-full h-full object-cover"
+                                    referrerPolicy="no-referrer"
+                                    onError={(e) => handleAvatarError(e, follower.username)}
+                                  />
                                 ) : (
                                   <UserCircle className="w-full h-full text-gray-500 p-1" />
                                 )}
@@ -619,11 +642,11 @@ export default function Navbar({ onSignUpClick }) {
                 >
                   {userStorage.getUser()?.profilePictureUrl ? (
                     <img
-                      src={userStorage.getUser().profilePictureUrl.startsWith('http')
-                        ? userStorage.getUser().profilePictureUrl
-                        : `/api/users/profile-picture/${userStorage.getUser().profilePictureUrl}`}
+                      src={getProfileImageSrc(userStorage.getUser().profilePictureUrl)}
                       alt="Profile"
                       className="w-10 h-10 rounded-full object-cover border border-gray-500/50 hover:border-white transition"
+                      referrerPolicy="no-referrer"
+                      onError={(e) => handleAvatarError(e, userStorage.getUser()?.username)}
                     />
                   ) : userStorage.getUser()?.username ? (
                     <div className="w-10 h-10 rounded-full border border-gray-500/50 hover:border-white transition flex items-center justify-center bg-purple-600/30 text-purple-400 font-bold">
@@ -821,7 +844,13 @@ export default function Navbar({ onSignUpClick }) {
                       onClick={() => { setShowMobileConnections(false); navigate(`/user/${follower.id}`); }}
                     >
                       {follower.profilePictureUrl ? (
-                        <img src={follower.profilePictureUrl.startsWith('http') ? follower.profilePictureUrl : `/api/users/profile-picture/${follower.profilePictureUrl}`} alt={follower.username} className="w-full h-full object-cover" />
+                        <img
+                          src={getProfileImageSrc(follower.profilePictureUrl)}
+                          alt={follower.username}
+                          className="w-full h-full object-cover"
+                          referrerPolicy="no-referrer"
+                          onError={(e) => handleAvatarError(e, follower.username)}
+                        />
                       ) : (
                         <UserCircle className="w-full h-full text-gray-500 p-1" />
                       )}

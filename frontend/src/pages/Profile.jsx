@@ -1,11 +1,21 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Camera, Lock, User, Mail, LogOut, Save, Film, Tv, Users, UserPlus, Heart, List, Eye, Star, Activity, Plus, Trash2, ChevronLeft, Loader2 } from "lucide-react";
+import { Camera, Lock, User, Mail, LogOut, Save, Film, Tv, Users, UserPlus, Heart, List, Eye, Plus, Trash2, ChevronLeft, Loader2 } from "lucide-react";
 import { userStorage, authService } from "../services/authService";
 import { likesService, watchlistService, listService, watchedService } from "../services/contentService";
 
 const TMDB_BEARER_TOKEN = import.meta.env.VITE_TMDB_BEARER_TOKEN || "YOUR_TOKEN_HERE";
 const IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w500";
+
+const getAvatarFallbackUrl = (username) =>
+    `https://ui-avatars.com/api/?name=${encodeURIComponent(username || 'User')}&background=1f2937&color=ffffff&bold=true`;
+
+const handleAvatarError = (event, username) => {
+    const fallback = getAvatarFallbackUrl(username);
+    if (event.currentTarget.src !== fallback) {
+        event.currentTarget.src = fallback;
+    }
+};
 
 export default function Profile() {
     const navigate = useNavigate();
@@ -23,6 +33,7 @@ export default function Profile() {
     const [watchedMovies, setWatchedMovies] = useState([]);
     const [watchedTvShows, setWatchedTvShows] = useState([]);
     const [isLoadingWatched, setIsLoadingWatched] = useState(true);
+    const [showAllWatchedMovies, setShowAllWatchedMovies] = useState(false);
 
     // Lists state
     const [userLists, setUserLists] = useState([]);
@@ -214,7 +225,7 @@ export default function Profile() {
                     const tvShows = result.data.filter(item => item.contentType === 'TV');
 
                     // Fetch details from TMDB for movies
-                    const movieDetailsPromises = movies.slice(0, 6).map(async (item) => {
+                    const movieDetailsPromises = movies.map(async (item) => {
                         try {
                             const response = await fetch(
                                 `https://api.themoviedb.org/3/movie/${item.tmdbId}?language=en-US`,
@@ -224,10 +235,29 @@ export default function Profile() {
                                     },
                                 }
                             );
-                            return await response.json();
+                            if (!response.ok) {
+                                return {
+                                    id: item.tmdbId,
+                                    title: `Movie #${item.tmdbId}`,
+                                    poster_path: null,
+                                    release_date: null,
+                                };
+                            }
+                            const data = await response.json();
+                            return {
+                                id: data.id ?? item.tmdbId,
+                                title: data.title ?? `Movie #${item.tmdbId}`,
+                                poster_path: data.poster_path ?? null,
+                                release_date: data.release_date ?? null,
+                            };
                         } catch (error) {
                             console.error('Error fetching movie details:', error);
-                            return null;
+                            return {
+                                id: item.tmdbId,
+                                title: `Movie #${item.tmdbId}`,
+                                poster_path: null,
+                                release_date: null,
+                            };
                         }
                     });
 
@@ -294,7 +324,7 @@ export default function Profile() {
                     const tvShows = result.data.filter(item => item.contentType === 'TV');
 
                     // Fetch details from TMDB for movies
-                    const movieDetailsPromises = movies.slice(0, 6).map(async (item) => {
+                    const movieDetailsPromises = movies.map(async (item) => {
                         try {
                             const response = await fetch(
                                 `https://api.themoviedb.org/3/movie/${item.tmdbId}?language=en-US`,
@@ -304,10 +334,29 @@ export default function Profile() {
                                     },
                                 }
                             );
-                            return await response.json();
+                            if (!response.ok) {
+                                return {
+                                    id: item.tmdbId,
+                                    title: `Movie #${item.tmdbId}`,
+                                    poster_path: null,
+                                    release_date: null,
+                                };
+                            }
+                            const data = await response.json();
+                            return {
+                                id: data.id ?? item.tmdbId,
+                                title: data.title ?? `Movie #${item.tmdbId}`,
+                                poster_path: data.poster_path ?? null,
+                                release_date: data.release_date ?? null,
+                            };
                         } catch (error) {
                             console.error('Error fetching movie details:', error);
-                            return null;
+                            return {
+                                id: item.tmdbId,
+                                title: `Movie #${item.tmdbId}`,
+                                poster_path: null,
+                                release_date: null,
+                            };
                         }
                     });
 
@@ -332,7 +381,7 @@ export default function Profile() {
                     const movieDetails = await Promise.all(movieDetailsPromises);
                     const tvDetails = await Promise.all(tvDetailsPromises);
 
-                    setWatchedMovies(movieDetails.filter(m => m !== null));
+                    setWatchedMovies(movieDetails.filter(Boolean));
                     setWatchedTvShows(tvDetails.filter(t => t !== null));
                 } else {
                     setWatchedMovies([]);
@@ -704,10 +753,8 @@ export default function Profile() {
 
     const tabs = [
         { id: "profile", label: "Profile", icon: User },
-        { id: "activity", label: "Activity", icon: Activity },
         { id: "movies", label: "Movies", icon: Film },
         { id: "tvshows", label: "TV Shows", icon: Tv },
-        { id: "reviews", label: "Reviews", icon: Star },
         { id: "watchlist", label: "Watchlist", icon: Eye },
         { id: "lists", label: "Lists", icon: List },
         { id: "likes", label: "Likes", icon: Heart }
@@ -739,6 +786,8 @@ export default function Profile() {
                                                 src={previewImage}
                                                 alt="Profile"
                                                 className="w-full h-full object-cover"
+                                                referrerPolicy="no-referrer"
+                                                onError={(e) => handleAvatarError(e, user?.username)}
                                             />
                                         ) : (
                                             <div className="w-full h-full flex items-center justify-center">
@@ -848,13 +897,6 @@ export default function Profile() {
                                         <span>TV Shows</span>
                                     </div>
                                     <span className="text-xl font-bold text-white">{stats.seriesWatched}</span>
-                                </div>
-                                <div className="flex items-center justify-between pb-3 border-b border-gray-700">
-                                    <div className="flex items-center gap-2 text-gray-400 text-sm">
-                                        <Star size={16} className="text-purple-600" />
-                                        <span>Reviews</span>
-                                    </div>
-                                    <span className="text-xl font-bold text-white">{stats.reviewsCount}</span>
                                 </div>
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2 text-gray-400 text-sm">
@@ -1168,15 +1210,6 @@ export default function Profile() {
                                 </div>
                             )}
 
-                            {/* Activity Tab */}
-                            {activeTab === "activity" && (
-                                <div className="bg-gray-900 border border-gray-700 p-12 text-center">
-                                    <Activity size={48} className="text-gray-600 mx-auto mb-4" />
-                                    <h3 className="text-xl font-semibold text-white mb-2">Your Activity</h3>
-                                    <p className="text-gray-400">Your recent activities will appear here</p>
-                                </div>
-                            )}
-
                             {/* Movies Tab */}
                             {activeTab === "movies" && (
                                 <div className="bg-gray-900 border border-gray-700 p-6">
@@ -1204,36 +1237,48 @@ export default function Profile() {
                                             <p className="text-gray-500 text-sm">Movies you mark as watched will appear here</p>
                                         </div>
                                     ) : (
-                                        <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-                                            {watchedMovies.map((movie) => (
-                                                <div
-                                                    key={movie.id}
-                                                    onClick={() => navigate(`/movies/${movie.id}`)}
-                                                    className="cursor-pointer group"
-                                                >
-                                                    <div className="relative aspect-[2/3] overflow-hidden rounded-lg border-2 border-transparent group-hover:border-purple-600 transition-all">
-                                                        {movie.poster_path ? (
-                                                            <img
-                                                                src={`${IMAGE_BASE_URL}${movie.poster_path}`}
-                                                                alt={movie.title}
-                                                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                                                            />
-                                                        ) : (
-                                                            <div className="w-full h-full bg-gray-800 flex items-center justify-center">
-                                                                <Film className="w-12 h-12 text-gray-600" />
-                                                            </div>
-                                                        )}
-                                                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-                                                            <div className="absolute bottom-0 left-0 right-0 p-3">
-                                                                <h4 className="text-white text-sm font-semibold line-clamp-2">{movie.title}</h4>
-                                                                {movie.release_date && (
-                                                                    <p className="text-gray-300 text-xs mt-1">{new Date(movie.release_date).getFullYear()}</p>
-                                                                )}
+                                        <div>
+                                            <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+                                                {(showAllWatchedMovies ? watchedMovies : watchedMovies.slice(0, 6)).map((movie) => (
+                                                    <div
+                                                        key={movie.id}
+                                                        onClick={() => navigate(`/movies/${movie.id}`)}
+                                                        className="cursor-pointer group"
+                                                    >
+                                                        <div className="relative aspect-[2/3] overflow-hidden rounded-lg border-2 border-transparent group-hover:border-purple-600 transition-all">
+                                                            {movie.poster_path ? (
+                                                                <img
+                                                                    src={`${IMAGE_BASE_URL}${movie.poster_path}`}
+                                                                    alt={movie.title}
+                                                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                                                />
+                                                            ) : (
+                                                                <div className="w-full h-full bg-gray-800 flex items-center justify-center">
+                                                                    <Film className="w-12 h-12 text-gray-600" />
+                                                                </div>
+                                                            )}
+                                                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                <div className="absolute bottom-0 left-0 right-0 p-3">
+                                                                    <h4 className="text-white text-sm font-semibold line-clamp-2">{movie.title}</h4>
+                                                                    {movie.release_date && (
+                                                                        <p className="text-gray-300 text-xs mt-1">{new Date(movie.release_date).getFullYear()}</p>
+                                                                    )}
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </div>
+                                                ))}
+                                            </div>
+                                            {(watchedMovies.length > 6 || stats.moviesWatched > 6) && (
+                                                <div className="mt-6 flex justify-center">
+                                                    <button
+                                                        onClick={() => setShowAllWatchedMovies((prev) => !prev)}
+                                                        className="px-6 py-2 bg-gray-800 border border-gray-700 text-white text-sm font-semibold hover:border-purple-600 hover:text-purple-600 transition-colors"
+                                                    >
+                                                        {showAllWatchedMovies ? 'Show less' : `Show more (${Math.max((stats.moviesWatched || watchedMovies.length) - 6, 0)} more)`}
+                                                    </button>
                                                 </div>
-                                            ))}
+                                            )}
                                         </div>
                                     )}
                                 </div>
@@ -1301,14 +1346,7 @@ export default function Profile() {
                                 </div>
                             )}
 
-                            {/* Reviews Tab */}
-                            {activeTab === "reviews" && (
-                                <div className="bg-gray-900 border border-gray-700 p-12 text-center">
-                                    <Star size={48} className="text-gray-600 mx-auto mb-4" />
-                                    <h3 className="text-xl font-semibold text-white mb-2">Your Reviews</h3>
-                                    <p className="text-gray-400">Your reviews will appear here</p>
-                                </div>
-                            )}\n\n                            {/* Watchlist Tab */}
+                            {/* Watchlist Tab */}
                             {activeTab === "watchlist" && (
                                 <div className="bg-gray-900 border border-gray-700 p-6">
                                     <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-700">
@@ -1683,6 +1721,8 @@ export default function Profile() {
                                                         src={followUser.profilePictureUrl}
                                                         alt={followUser.username}
                                                         className="w-full h-full object-cover"
+                                                        referrerPolicy="no-referrer"
+                                                        onError={(e) => handleAvatarError(e, followUser.username)}
                                                     />
                                                 ) : (
                                                     <span className="text-white font-bold text-lg">
