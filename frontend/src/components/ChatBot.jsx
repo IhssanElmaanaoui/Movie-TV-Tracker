@@ -86,13 +86,37 @@ export default function ChatBot() {
           fetchTmdb(`${basePath}/credits?language=en-US`),
         ]);
         if (cancelled) return;
+        
+        // Extract comprehensive movie data
         const director = creditsRes.crew?.find((c) => c.job === "Director")?.name || "";
+        const writers = creditsRes.crew
+          ?.filter((c) => c.job === "Writer" || c.job === "Screenplay")
+          ?.map((c) => c.name)
+          .slice(0, 3)
+          .join(", ") || "";
+        const cast = creditsRes.cast?.slice(0, 5).map((c) => c.name).join(", ") || "";
+        const producers = creditsRes.crew
+          ?.filter((c) => c.job === "Producer")
+          ?.map((c) => c.name)
+          .slice(0, 3)
+          .join(", ") || "";
+
         setMovieDetails({
           ...detailsRes,
           director,
+          writers,
+          cast,
+          producers,
           overview: detailsRes.overview || "",
           title: detailsRes.title || detailsRes.name,
           release_date: detailsRes.release_date || detailsRes.first_air_date,
+          genres: detailsRes.genres?.map((g) => g.name).join(", ") || "",
+          runtime: detailsRes.runtime || detailsRes.episode_run_time?.[0] || 0,
+          budget: detailsRes.budget || 0,
+          revenue: detailsRes.revenue || 0,
+          production_companies: detailsRes.production_companies?.map((c) => c.name).join(", ") || "",
+          spoken_languages: detailsRes.spoken_languages?.map((l) => l.english_name).join(", ") || "",
+          tagline: detailsRes.tagline || "",
         });
       } catch (e) {
         if (!cancelled) setMovieDetails({ ...movie, overview: movie.overview || "", director: "" });
@@ -106,8 +130,101 @@ export default function ChatBot() {
   };
 
   const handleGeneralMode = async (query) => {
-    const genreIds = getGenreIdsFromText(query);
+    const lower = query.toLowerCase();
+    
     try {
+      // 🔝 TOP RATED MOVIES
+      if (lower.includes("best") || lower.includes("top") || lower.includes("highest rated")) {
+        const data = await fetchTmdb("/movie/top_rated?language=en-US&page=1");
+        const results = (data.results || []).slice(0, 8);
+        const list = results
+          .map((m) => `• ${m.title || m.original_title} (${m.vote_average?.toFixed(1)}/10)`)
+          .join("\n");
+        addMessage(
+          "assistant",
+          `Here are the top-rated movies:\n\n${list}`
+        );
+        return;
+      }
+
+      // 📈 TRENDING / NEW RELEASES
+      if (lower.includes("trending") || lower.includes("popular") || lower.includes("new") || lower.includes("latest")) {
+        const data = await fetchTmdb("/trending/movie/week?language=en-US");
+        const results = (data.results || []).slice(0, 8);
+        const list = results
+          .map((m) => `• ${m.title || m.original_title} (${m.release_date?.slice(0, 4) || "N/A"})`)
+          .join("\n");
+        addMessage(
+          "assistant",
+          `Here are trending movies this week:\n\n${list}`
+        );
+        return;
+      }
+
+      // 🎯 SEARCH BY TITLE
+      if (lower.includes("movie") || lower.includes("find") || lower.includes("search")) {
+        // Extract potential movie name from query
+        const keywords = query.replace(/movie|find|search|about|called|named|called|is|the/gi, "").trim();
+        if (keywords.length > 2) {
+          const data = await fetchTmdb(`/search/movie?query=${encodeURIComponent(keywords)}&language=en-US&page=1`);
+          const results = (data.results || []).slice(0, 6);
+          if (results.length > 0) {
+            const list = results
+              .map((m) => `• ${m.title || m.original_title} (${m.release_date?.slice(0, 4) || "N/A"})`)
+              .join("\n");
+            addMessage(
+              "assistant",
+              `I found these movies:\n\n${list}\n\nClick on any to learn more!`
+            );
+            return;
+          }
+        }
+      }
+
+      // 🎭 SEARCH BY ACTOR
+      if (lower.includes("actor") || lower.includes("actress") || lower.includes("star") || lower.includes("played by")) {
+        const actorName = query.replace(/actor|actress|star|played by|with|featuring/gi, "").trim();
+        if (actorName.length > 2) {
+          const data = await fetchTmdb(`/search/person?query=${encodeURIComponent(actorName)}&language=en-US&page=1`);
+          const person = data.results?.[0];
+          if (person) {
+            const movieData = await fetchTmdb(`/person/${person.id}/movie_credits?language=en-US`);
+            const results = (movieData.cast || []).slice(0, 8);
+            const list = results
+              .map((m) => `• ${m.title || m.original_title} (${m.release_date?.slice(0, 4) || "N/A"})`)
+              .join("\n");
+            addMessage(
+              "assistant",
+              `Movies with ${person.name}:\n\n${list}`
+            );
+            return;
+          }
+        }
+      }
+
+      // 👨‍🎬 SEARCH BY DIRECTOR
+      if (lower.includes("director") || lower.includes("directed by")) {
+        const directorName = query.replace(/director|directed by|by/gi, "").trim();
+        if (directorName.length > 2) {
+          const data = await fetchTmdb(`/search/person?query=${encodeURIComponent(directorName)}&language=en-US&page=1`);
+          const person = data.results?.[0];
+          if (person) {
+            const movieData = await fetchTmdb(`/person/${person.id}/movie_credits?language=en-US`);
+            const results = (movieData.crew?.filter((m) => m.job === "Director") || []).slice(0, 8);
+            const list = results
+              .map((m) => `• ${m.title || m.original_title} (${m.release_date?.slice(0, 4) || "N/A"})`)
+              .join("\n");
+            addMessage(
+              "assistant",
+              `Movies directed by ${person.name}:\n\n${list}`
+            );
+            return;
+          }
+        }
+      }
+
+      // 🎬 GENRE RECOMMENDATIONS
+      const genreIds = getGenreIdsFromText(query);
       if (genreIds.length > 0) {
         const params = new URLSearchParams({
           with_genres: genreIds.join(","),
@@ -125,21 +242,27 @@ export default function ChatBot() {
           .join("\n");
         const reply =
           list.length > 0
-            ? `Here are some movie suggestions (${genreNames.join(", ")}):\n\n${list}`
+            ? `Here are some ${genreNames.join(", ")} movies:\n\n${list}`
             : `I couldn't find movies for that combination. Try "action", "horror", "romance", "sci-fi", or "comedy".`;
         addMessage("assistant", reply);
-      } else {
-        // Fallback: popular movies
-        const data = await fetchTmdb("/movie/popular?language=en-US&page=1");
-        const results = (data.results || []).slice(0, 6);
-        const list = results
-          .map((m) => `• ${m.title || m.original_title} (${m.release_date?.slice(0, 4) || "N/A"})`)
-          .join("\n");
-        addMessage(
-          "assistant",
-          `Here are some popular movies you might like:\n\n${list}\n\nYou can also ask for genres like "horror and romance" or "action movies".`
-        );
+        return;
       }
+
+      // 🎲 DEFAULT: Popular movies + help message
+      const data = await fetchTmdb("/movie/popular?language=en-US&page=1");
+      const results = (data.results || []).slice(0, 6);
+      const list = results
+        .map((m) => `• ${m.title || m.original_title} (${m.release_date?.slice(0, 4) || "N/A"})`)
+        .join("\n");
+      const helpMessage = `Here are some popular movies:\n\n${list}\n\n💡 You can ask me:
+• Genres (e.g., "horror movies")
+• Top rated movies
+• Trending movies
+• Search for a movie by title
+• Find movies by actor/actress
+• Find movies by director
+• And more!`;
+      addMessage("assistant", helpMessage);
     } catch (e) {
       addMessage("assistant", "Sorry, I couldn't fetch suggestions right now. Please try again.");
     }
@@ -150,11 +273,8 @@ export default function ChatBot() {
     const title = details?.title || details?.name || movie?.title || movie?.name || "this";
     const lower = query.toLowerCase();
 
-    if (
-      lower.includes("director") ||
-      lower.includes("who directed") ||
-      lower.includes("directed by")
-    ) {
+    // Try to answer based on specific keywords
+    if (lower.includes("director") || lower.includes("who directed") || lower.includes("directed by")) {
       const director = movieDetails?.director || "";
       addMessage(
         "assistant",
@@ -163,17 +283,83 @@ export default function ChatBot() {
       return;
     }
 
-    if (
-      lower.includes("story") ||
-      lower.includes("plot") ||
-      lower.includes("about") ||
-      lower.includes("what is") ||
-      lower.includes("summary")
-    ) {
+    if (lower.includes("actor") || lower.includes("cast") || lower.includes("star")) {
+      const cast = movieDetails?.cast || "";
+      addMessage(
+        "assistant",
+        cast ? `The cast of ${title} includes: ${cast}.` : `I don't have cast information for ${title} right now.`
+      );
+      return;
+    }
+
+    if (lower.includes("writer") || lower.includes("wrote") || lower.includes("screenplay")) {
+      const writers = movieDetails?.writers || "";
+      addMessage(
+        "assistant",
+        writers ? `The screenplay was written by: ${writers}.` : `I don't have writer information for ${title} right now.`
+      );
+      return;
+    }
+
+    if (lower.includes("genre")) {
+      const genres = movieDetails?.genres || "";
+      addMessage(
+        "assistant",
+        genres ? `${title} is a ${genres} film.` : `I don't have genre information for ${title} right now.`
+      );
+      return;
+    }
+
+    if (lower.includes("story") || lower.includes("plot") || lower.includes("about") || lower.includes("what is") || lower.includes("summary")) {
       const overview = movieDetails?.overview || movie?.overview || "";
       addMessage(
         "assistant",
         overview ? `${title}: ${overview}` : `I don't have a summary for ${title} right now.`
+      );
+      return;
+    }
+
+    if (lower.includes("runtime") || lower.includes("duration") || lower.includes("long is")) {
+      const runtime = movieDetails?.runtime || 0;
+      addMessage(
+        "assistant",
+        runtime > 0 ? `${title} has a runtime of ${runtime} minutes.` : `I don't have runtime information for ${title}.`
+      );
+      return;
+    }
+
+    if (lower.includes("budget")) {
+      const budget = movieDetails?.budget || 0;
+      addMessage(
+        "assistant",
+        budget > 0 ? `The budget for ${title} was $${(budget / 1000000).toFixed(1)}M.` : `I don't have budget information for ${title}.`
+      );
+      return;
+    }
+
+    if (lower.includes("revenue") || lower.includes("box office")) {
+      const revenue = movieDetails?.revenue || 0;
+      addMessage(
+        "assistant",
+        revenue > 0 ? `${title} made $${(revenue / 1000000).toFixed(1)}M at the box office.` : `I don't have box office information for ${title}.`
+      );
+      return;
+    }
+
+    if (lower.includes("production")) {
+      const companies = movieDetails?.production_companies || "";
+      addMessage(
+        "assistant",
+        companies ? `${title} was produced by: ${companies}.` : `I don't have production information for ${title}.`
+      );
+      return;
+    }
+
+    if (lower.includes("language")) {
+      const languages = movieDetails?.spoken_languages || "";
+      addMessage(
+        "assistant",
+        languages ? `${title} is available in: ${languages}.` : `I don't have language information for ${title}.`
       );
       return;
     }
@@ -187,14 +373,39 @@ export default function ChatBot() {
 
     if (lower.includes("rating") || lower.includes("score")) {
       const v = details?.vote_average ?? movie?.vote_average;
-      addMessage("assistant", v != null ? `${title} has a rating of ${v.toFixed(1)}/10 on TMDB.` : `I don't have the rating for ${title}.`);
+      addMessage(
+        "assistant",
+        v != null ? `${title} has a rating of ${v.toFixed(1)}/10 on TMDB.` : `I don't have the rating for ${title}.`
+      );
       return;
     }
 
-    addMessage(
-      "assistant",
-      `I can answer questions about the director, story/plot, release year, or rating of ${title}. Ask something like "Who is the director?" or "What is the story?"`
-    );
+    if (lower.includes("tagline")) {
+      const tagline = movieDetails?.tagline || "";
+      addMessage(
+        "assistant",
+        tagline ? `Tagline: "${tagline}"` : `I don't have a tagline for ${title}.`
+      );
+      return;
+    }
+
+    // Generic fallback - provide a summary of available info
+    const summary = `I know a lot about ${title}! You can ask me:
+• Who directed it
+• Who is in the cast
+• The plot summary
+• Release year
+• Rating / score
+• Runtime / duration
+• Budget
+• Box office / revenue
+• Production companies
+• Languages
+• Genres
+• And more!
+
+What would you like to know?`;
+    addMessage("assistant", summary);
   };
 
   const handleSend = async () => {
@@ -217,7 +428,7 @@ export default function ChatBot() {
   };
 
   const welcomeMessage = isMovieMode
-    ? `You're now asking about "${movie?.title || movie?.name}". Ask about the director, story, year, or rating!`
+    ? `You're now asking about "${movie?.title || movie?.name}". Ask me anything about this movie!`
     : "Hi! I'm your Movie Assistant. Ask for recommendations by genre, e.g. \"horror and romance\" or \"action movies\".";
 
   return (
