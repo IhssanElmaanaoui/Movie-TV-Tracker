@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { ShieldAlert, X } from "lucide-react";
 
 import Navbar from "./components/Navbar";
+import ChatBot from "./components/ChatBot";
 import Dashboard from "./pages/Dashboard";
 import Series from "./pages/Series";
 import Login from "./components/Login";
@@ -93,6 +94,9 @@ export default function App() {
         <Route path="/admin/dashboard" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
         <Route path="/admin/community" element={<ProtectedRoute><AdminCommunityMonitor /></ProtectedRoute>} />
       </Routes>
+
+      {/* Global ChatBot - available on all pages */}
+      <ChatBot />
     </Router>
   );
 }

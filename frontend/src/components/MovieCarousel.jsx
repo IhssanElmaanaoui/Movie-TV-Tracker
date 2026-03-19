@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useSelectedMovie } from '../context/SelectedMovieContext';
 import './MovieCarousel.css';
 
-export default function MovieCarousel({ onLoadComplete, onMovieSelect }) {
+export default function MovieCarousel({ onLoadComplete }) {
   const navigate = useNavigate();
+  const { selectMovie } = useSelectedMovie();
   const [movies, setMovies] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showAddMenu, setShowAddMenu] = useState(false);
@@ -161,7 +163,7 @@ export default function MovieCarousel({ onLoadComplete, onMovieSelect }) {
   };
 
   const handleViewDetails = () => {
-    onMovieSelect?.(currentMovie);
+    selectMovie(currentMovie);
     navigate(`/movie/${currentMovie.id}`);
   };
 

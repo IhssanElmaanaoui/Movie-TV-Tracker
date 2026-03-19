@@ -5,12 +5,10 @@ import StreamingPlatforms from "../components/StreamingPlatforms";
 import MovieCategoriesCarousel from "../components/MovieCategoriesCarousel";
 import CollectionCarousel from "../components/CollectionCarousel";
 import SignUp from "../components/SignUp";
-import ChatBot from "../components/ChatBot";
 import { userStorage } from "../services/authService";
 
 export default function Dashboard() {
   const [showSignUpModal, setShowSignUpModal] = useState(false);
-  const [selectedMovie, setSelectedMovie] = useState(null);
   const [user, setUser] = useState(null);
 
   useEffect(() => {
@@ -127,7 +125,6 @@ export default function Dashboard() {
           <div className="flex-grow relative">
             <MovieCarousel
               onLoadComplete={() => handleLoadComplete('movieCarousel')}
-              onMovieSelect={setSelectedMovie}
             />
           </div>
 
@@ -138,15 +135,11 @@ export default function Dashboard() {
         {/* ✅ Categories Carousel */}
         <MovieCategoriesCarousel
           onLoadComplete={() => handleLoadComplete('movieCategories')}
-          onMovieSelect={setSelectedMovie}
         />
 
         {/* ✅ Collections Carousel */}
         <CollectionCarousel onLoadComplete={() => handleLoadComplete('collections')} />
       </div>
-
-      {/* Movie Assistant Chatbot - only for non-admin users */}
-      {user?.role !== "ADMIN" && <ChatBot movie={selectedMovie} />}
     </>
   );
 }

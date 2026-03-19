@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Heart, Clock, Eye } from 'lucide-react';
+import { useSelectedMovie } from '../context/SelectedMovieContext';
 import './MovieCard.css';
 
 export default function MovieCard({ movie, onFavorite, onWatchlist, onViewDetails }) {
     const navigate = useNavigate();
+    const { selectMovie } = useSelectedMovie();
     const [isHovered, setIsHovered] = useState(false);
     const [isFavorited, setIsFavorited] = useState(false);
     const [isWatchlisted, setIsWatchlisted] = useState(false);
@@ -23,16 +25,16 @@ export default function MovieCard({ movie, onFavorite, onWatchlist, onViewDetail
 
     const handleViewDetails = (e) => {
         e.stopPropagation();
+        selectMovie(movie);
         if (onViewDetails) {
             onViewDetails(movie);
         } else {
-            // Default navigation to detail page
             navigate(`/movie/${movie.id}`);
         }
     };
 
     const handleCardClick = () => {
-        // Navigate to detail page when card is clicked
+        selectMovie(movie);
         navigate(`/movie/${movie.id}`);
     };
 

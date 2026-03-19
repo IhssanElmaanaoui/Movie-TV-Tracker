@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Skeleton from '@mui/material/Skeleton';
+import { useSelectedMovie } from "../context/SelectedMovieContext";
 
 const GENRE_MAP = {
   28: "Action",
@@ -43,8 +44,9 @@ const CATEGORIES = [
   },
 ];
 
-export default function MovieCategoriesCarousel({ onLoadComplete, onMovieSelect }) {
+export default function MovieCategoriesCarousel({ onLoadComplete }) {
   const navigate = useNavigate();
+  const { selectMovie } = useSelectedMovie();
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 480);
@@ -56,7 +58,7 @@ export default function MovieCategoriesCarousel({ onLoadComplete, onMovieSelect 
 
   // ✅ Handle card click navigation + notify parent for chatbot context
   const handleCardClick = (movie, categoryType) => {
-    onMovieSelect?.(movie);
+    selectMovie(movie);
     const isTV = categoryType === "tv" || movie.name; // TV shows have 'name' instead of 'title'
     const route = isTV ? `/tv/${movie.id}` : `/movie/${movie.id}`;
     navigate(route);

@@ -11,6 +11,7 @@ import { userStorage } from '../services/authService';
 import { ratingService } from '../services/ratingService';
 import AddToListModal from '../components/AddToListModal';
 import StarRatingSelector from '../components/StarRatingSelector';
+import { useSelectedMovie } from '../context/SelectedMovieContext';
 
 const TMDB_BEARER_TOKEN = import.meta.env.VITE_TMDB_BEARER_TOKEN || "YOUR_TOKEN_HERE";
 const IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w500";
@@ -84,6 +85,7 @@ function ReviewContent({ content }) {
 export default function SeriesDetail() {
     const { id } = useParams();
     const navigate = useNavigate();
+    const { selectMovie, clearMovie } = useSelectedMovie();
 
     const [series, setSeries] = useState(null);
     const [cast, setCast] = useState([]);
@@ -215,6 +217,20 @@ export default function SeriesDetail() {
         }
         return () => { document.title = 'Projection'; };
     }, [series]);
+
+    // Update global context with selected series
+    useEffect(() => {
+        if (series?.id) {
+            selectMovie(series);
+        }
+    }, [series?.id, selectMovie]);
+
+    // Clear selected series when leaving the detail page
+    useEffect(() => {
+        return () => {
+            clearMovie();
+        };
+    }, [clearMovie]);
 
     const fetchSeriesDetails = async () => {
         setLoading(true);
