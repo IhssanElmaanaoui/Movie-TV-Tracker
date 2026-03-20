@@ -22,12 +22,19 @@ function formatTimeAgo(dateString) {
 
 function Avatar({ user, size = 8 }) {
     const initials = user?.username?.[0]?.toUpperCase() || '?';
+    const fallbackAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.username || 'User')}&background=1f2937&color=ffffff&bold=true`;
     if (user?.profilePictureUrl) {
         return (
             <img
                 src={user.profilePictureUrl}
                 alt={user.username}
                 className={`w-${size} h-${size} rounded-full object-cover flex-shrink-0`}
+                referrerPolicy="no-referrer"
+                onError={(event) => {
+                    if (event.currentTarget.src !== fallbackAvatar) {
+                        event.currentTarget.src = fallbackAvatar;
+                    }
+                }}
             />
         );
     }

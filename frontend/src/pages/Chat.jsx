@@ -6,6 +6,16 @@ import webSocketService from "../services/webSocketService";
 import { userStorage } from "../services/authService";
 import axios from "axios";
 
+const getAvatarFallbackUrl = (username) =>
+    `https://ui-avatars.com/api/?name=${encodeURIComponent(username || 'User')}&background=1f2937&color=ffffff&bold=true`;
+
+const handleAvatarError = (event, username) => {
+    const fallback = getAvatarFallbackUrl(username);
+    if (event.currentTarget.src !== fallback) {
+        event.currentTarget.src = fallback;
+    }
+};
+
 export default function Chat() {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
@@ -754,6 +764,8 @@ export default function Chat() {
                                                         src={searchUser.profilePictureUrl}
                                                         alt={searchUser.username}
                                                         className="w-full h-full rounded-full object-cover"
+                                                        referrerPolicy="no-referrer"
+                                                        onError={(e) => handleAvatarError(e, searchUser.username)}
                                                     />
                                                 ) : (
                                                     <span className="text-white font-bold text-lg">

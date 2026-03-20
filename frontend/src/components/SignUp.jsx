@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { authService, userStorage } from "../services/authService";
+import { GOOGLE_CLIENT_ID, loadGoogleIdentityScript } from "../services/googleAuth";
 import "./SignUp.css";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -36,6 +37,7 @@ export default function SignUp({ onClose }) {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [usernameError, setUsernameError] = useState("");
   const [isCheckingUsername, setIsCheckingUsername] = useState(false);
   const [usernameAvailable, setUsernameAvailable] = useState(null);
@@ -43,6 +45,12 @@ export default function SignUp({ onClose }) {
   const [passwordError, setPasswordError] = useState("");
   const [confirmPasswordError, setConfirmPasswordError] = useState("");
   const [touched, setTouched] = useState({ email: false, password: false, confirmPassword: false });
+  const googleButtonRef = useRef(null);
+  const usernameRef = useRef("");
+
+  useEffect(() => {
+    usernameRef.current = username;
+  }, [username]);
 
   // Check username availability when user types
   useEffect(() => {
@@ -191,6 +199,71 @@ export default function SignUp({ onClose }) {
     }
   };
 
+  useEffect(() => {
+    let isCancelled = false;
+
+    const initGoogleButton = async () => {
+      if (!GOOGLE_CLIENT_ID || !googleButtonRef.current) {
+        return;
+      }
+
+      try {
+        await loadGoogleIdentityScript();
+        if (isCancelled || !window.google?.accounts?.id || !googleButtonRef.current) return;
+
+        window.google.accounts.id.initialize({
+          client_id: GOOGLE_CLIENT_ID,
+          callback: async (response) => {
+            if (!response?.credential) return;
+            setError("");
+            setSuccess("");
+            setIsGoogleLoading(true);
+
+            try {
+              const preferredUsername = usernameRef.current.trim().length >= 3 ? usernameRef.current.trim() : undefined;
+              const result = await authService.googleAuth({
+                idToken: response.credential,
+                preferredUsername,
+              });
+
+              if (result.success) {
+                userStorage.setUser(result.data);
+                setSuccess("Google account connected successfully!");
+                setTimeout(() => {
+                  navigate("/");
+                }, 500);
+              } else {
+                console.error("Google signup failed:", result.error?.raw || result.error);
+                setError(result.error?.message || "Google signup failed. Please try again.");
+              }
+            } catch (err) {
+              console.error("Google signup error:", err);
+              setError("Google signup failed. Please try again.");
+            } finally {
+              setIsGoogleLoading(false);
+            }
+          },
+        });
+
+        googleButtonRef.current.innerHTML = "";
+        window.google.accounts.id.renderButton(googleButtonRef.current, {
+          theme: "outline",
+          size: "large",
+          width: 360,
+          text: "signup_with",
+          shape: "pill",
+        });
+      } catch (err) {
+        console.error("Failed to initialize Google Sign-Up:", err);
+      }
+    };
+
+    initGoogleButton();
+    return () => {
+      isCancelled = true;
+    };
+  }, [navigate]);
+
   return (
     <div className="signup-container">
       <div className="signup-wrapper">
@@ -307,6 +380,14 @@ export default function SignUp({ onClose }) {
             >
               {isLoading ? 'Creating Account...' : 'Create Account'}
             </button>
+
+            <div className="oauth-divider"><span>or</span></div>
+            {GOOGLE_CLIENT_ID ? (
+              <div className="google-auth-container" ref={googleButtonRef} />
+            ) : (
+              <p className="oauth-hint">Set VITE_GOOGLE_CLIENT_ID to enable Google Sign-Up.</p>
+            )}
+            {isGoogleLoading && <p className="oauth-hint">Signing up with Google...</p>}
           </form>
 
           <div className="signup-footer">

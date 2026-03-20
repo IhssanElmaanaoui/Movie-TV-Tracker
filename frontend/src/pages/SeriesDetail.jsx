@@ -82,6 +82,24 @@ function ReviewContent({ content }) {
     );
 }
 
+// Lightweight spinner to avoid runtime errors if external loader packages are missing.
+function RingLoader({ size = 30, color = "#a855f7" }) {
+    const borderWidth = Math.max(2, Math.round(size / 10));
+    return (
+        <span
+            className="inline-block animate-spin rounded-full border-solid border-t-transparent"
+            style={{
+                width: `${size}px`,
+                height: `${size}px`,
+                borderWidth: `${borderWidth}px`,
+                borderColor: color,
+                borderTopColor: "transparent",
+            }}
+            aria-label="Loading"
+        />
+    );
+}
+
 export default function SeriesDetail() {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -193,14 +211,10 @@ export default function SeriesDetail() {
 
     useEffect(() => {
         if (user?.id && id) {
-            console.log('User logged in, checking statuses for series:', id);
-            console.log('User object:', user);
             checkLikeStatus();
             checkWatchedStatus();
             checkWatchlistStatus();
             checkRatingStatus();
-        } else {
-            console.log('User not logged in or no series id. User:', user, 'ID:', id);
         }
     }, [user, id]);
 

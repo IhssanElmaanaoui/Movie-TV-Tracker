@@ -1,5 +1,27 @@
 import api from './api';
 
+function extractErrorMessage(error, fallbackMessage) {
+    const responseData = error?.response?.data;
+
+    if (typeof responseData === 'string' && responseData.trim()) {
+        return responseData;
+    }
+
+    if (responseData?.message) {
+        return responseData.message;
+    }
+
+    if (responseData?.error) {
+        return responseData.error;
+    }
+
+    if (error?.message) {
+        return error.message;
+    }
+
+    return fallbackMessage;
+}
+
 // Authentication Service
 export const authService = {
     // Sign up a new user
@@ -30,6 +52,28 @@ export const authService = {
             return {
                 success: false,
                 error: error.response?.data || { message: 'Network error occurred' },
+            };
+        }
+    },
+
+    // Login or signup user via Google ID token
+    googleAuth: async ({ idToken, preferredUsername }) => {
+        try {
+            const response = await api.post('/auth/google', {
+                idToken,
+                preferredUsername,
+            });
+            return {
+                success: true,
+                data: response.data,
+            };
+        } catch (error) {
+            return {
+                success: false,
+                error: {
+                    message: extractErrorMessage(error, 'Google authentication failed'),
+                    raw: error?.response?.data || null,
+                },
             };
         }
     },
