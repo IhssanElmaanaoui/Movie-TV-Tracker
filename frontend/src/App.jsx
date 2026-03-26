@@ -17,6 +17,7 @@ import SeriesDetail from "./pages/SeriesDetail";
 import Profile from "./pages/Profile";
 import Chat from "./pages/Chat";
 import UserProfile from "./pages/UserProfile";
+import CountryOnboarding from "./pages/CountryOnboarding";
 import Community from "./pages/Community";
 import TopicDetail from "./pages/TopicDetail";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -80,6 +81,7 @@ export default function App() {
         <Route path="/series" element={<Series />} />
         <Route path="/search" element={<SearchResults />} />
         <Route path="/signup" element={<SignUp />} />
+        <Route path="/onboarding/country" element={<CountryOnboarding />} />
         <Route path="/collections" element={<ProtectedRoute><Collections /></ProtectedRoute>} />
         <Route path="/collection/:id" element={<CollectionDetail />} />
         <Route path="/genre/:genre" element={<GenrePage />} />

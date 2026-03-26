@@ -57,11 +57,12 @@ export const authService = {
     },
 
     // Login or signup user via Google ID token
-    googleAuth: async ({ idToken, preferredUsername }) => {
+    googleAuth: async ({ idToken, preferredUsername, country }) => {
         try {
             const response = await api.post('/auth/google', {
                 idToken,
                 preferredUsername,
+                country,
             });
             return {
                 success: true,

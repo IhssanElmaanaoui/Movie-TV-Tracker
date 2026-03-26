@@ -275,10 +275,7 @@ export default function ChatBot() {
     setUser(userStorage.getUser());
   }, []);
 
-  // Don't show chatbot for admins
-  if (user?.role === "ADMIN") {
-    return null;
-  }
+  const isAdmin = user?.role === "ADMIN";
 
   const isMovieMode = Boolean(movie?.id);
 
@@ -968,6 +965,11 @@ What would you like to know?`;
   const welcomeMessage = isMovieMode
     ? `You're now asking about "${movie?.title || movie?.name}". Ask me anything about this movie!`
     : "Hi! I'm your Projection Assistant. Ask about movies, series, actors, directors, genres, and recommendations.";
+
+  // Keep hook order stable, then hide UI for admins.
+  if (isAdmin) {
+    return null;
+  }
 
   return (
     <>

@@ -14,10 +14,10 @@ const TMDB_IMG = 'https://image.tmdb.org/t/p/w92';
 const TMDB_URL = 'https://www.themoviedb.org';
 
 const PERIODS = [
-  { label: 'Today',    value: 'day'   },
-  { label: 'Week',     value: 'week'  },
-  { label: 'Month',    value: 'month' },
-  { label: 'All Time', value: 'all'   },
+  { label: 'Today', value: 'day' },
+  { label: 'Week', value: 'week' },
+  { label: 'Month', value: 'month' },
+  { label: 'All Time', value: 'all' },
 ];
 
 // ─── Small reusable components ──────────────────────────────────────────────
@@ -76,8 +76,8 @@ function ContentRow({ rank, item, metric, metricLabel, showType }) {
   };
 
   const title = details ? (details.title || details.name) : `TMDB #${item.tmdbId}`;
-  const posterUrl = details?.poster_path 
-    ? getPosterUrl(details.poster_path, 'w92') 
+  const posterUrl = details?.poster_path
+    ? getPosterUrl(details.poster_path, 'w92')
     : 'https://via.placeholder.com/92x138?text=No+Image';
 
   return (
@@ -122,28 +122,60 @@ function BarRow({ label, count, max, colorClass }) {
 
 function SignupTimeline({ data }) {
   if (!data?.length) return <p className="text-gray-500 text-sm text-center py-6">No data yet</p>;
-  const max = Math.max(...data.map(d => d.count), 1);
-  // show only last 14 days labels to avoid clutter
-  const showLabel = (i) => i % 4 === 0;
+
+  const total = data.reduce((sum, d) => sum + d.count, 0);
+  const activeDays = data.filter((d) => d.count > 0).length;
+  const peak = data.reduce((best, d) => (d.count > best.count ? d : best), { date: '-', count: 0 });
+
+  if (total === 0) {
+    return (
+      <div className="space-y-3">
+        <div className="grid grid-cols-3 gap-2 text-xs">
+          <div className="rounded-md bg-gray-800/60 px-3 py-2"><p className="text-gray-500">Total</p><p className="text-white font-semibold">0</p></div>
+          <div className="rounded-md bg-gray-800/60 px-3 py-2"><p className="text-gray-500">Active Days</p><p className="text-white font-semibold">0</p></div>
+          <div className="rounded-md bg-gray-800/60 px-3 py-2"><p className="text-gray-500">Peak Day</p><p className="text-white font-semibold">-</p></div>
+        </div>
+        <p className="text-gray-500 text-sm text-center py-2">No signups recorded in the last 30 days.</p>
+      </div>
+    );
+  }
+
+  const dailyAverage = (total / data.length).toFixed(1);
+
   return (
-    <div className="flex items-end gap-[3px] h-28 w-full">
-      {data.map((d, i) => {
-        const pct = (d.count / max) * 100;
-        return (
-          <div key={d.date} className="flex-1 flex flex-col items-center gap-1 group relative">
-            <div
-              className="w-full rounded-t bg-purple-500/70 hover:bg-purple-400 transition-colors cursor-default"
-              style={{ height: `${Math.max(pct, 2)}%` }}
-              title={`${d.date}: ${d.count} signups`}
-            />
-            {showLabel(i) && (
-              <span className="text-gray-600 text-[8px] rotate-45 origin-left whitespace-nowrap absolute -bottom-4 left-0">
-                {d.date.slice(5)}
-              </span>
-            )}
-          </div>
-        );
-      })}
+    <div className="space-y-4">
+      <div className="grid grid-cols-4 gap-2 text-xs">
+        <div className="rounded-md bg-gray-800/60 px-3 py-2">
+          <p className="text-gray-500">Total Signups</p>
+          <p className="text-white font-semibold">{total}</p>
+        </div>
+        <div className="rounded-md bg-gray-800/60 px-3 py-2">
+          <p className="text-gray-500">Active Days</p>
+          <p className="text-white font-semibold">{activeDays} / 30</p>
+        </div>
+        <div className="rounded-md bg-gray-800/60 px-3 py-2">
+          <p className="text-gray-500">Peak Day</p>
+          <p className="text-white font-semibold">{peak.date.slice(5)} ({peak.count})</p>
+        </div>
+        <div className="rounded-md bg-gray-800/60 px-3 py-2">
+          <p className="text-gray-500">Daily Avg</p>
+          <p className="text-white font-semibold">{dailyAverage}</p>
+        </div>
+      </div>
+
+      <div className="rounded-lg border border-gray-800 overflow-hidden">
+        <div className="max-h-64 overflow-y-auto">
+          {data
+            .slice()
+            .reverse()
+            .map((d) => (
+              <div key={d.date} className="flex items-center justify-between px-3 py-2 border-b border-gray-800/60 last:border-b-0">
+                <span className="text-sm text-gray-300">{d.date}</span>
+                <span className="text-sm font-semibold text-white">{d.count}</span>
+              </div>
+            ))}
+        </div>
+      </div>
     </div>
   );
 }
@@ -153,10 +185,10 @@ function SignupTimeline({ data }) {
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const [stats, setStats] = useState(null);
-  const [loading, setLoading]   = useState(true);
-  const [error, setError]       = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
-  const [period, setPeriod]     = useState('all');
+  const [period, setPeriod] = useState('all');
 
   const user = userStorage.getUser();
 
@@ -181,12 +213,14 @@ export default function AdminDashboard() {
     navigate('/login');
   };
 
-  // Content type totals
-  const movieWatches = stats?.contentTypeSplit?.MOVIE ?? 0;
-  const showWatches  = stats?.contentTypeSplit?.TV_SHOW ?? 0;
+  // Content type totals (support legacy and current backend keys)
+  const movieWatches = Number(stats?.contentTypeSplit?.MOVIE ?? 0);
+  const showWatches =
+    Number(stats?.contentTypeSplit?.TV ?? 0) +
+    Number(stats?.contentTypeSplit?.TV_SHOW ?? 0);
   const totalWatchesSplit = movieWatches + showWatches;
   const moviePct = totalWatchesSplit > 0 ? Math.round((movieWatches / totalWatchesSplit) * 100) : 50;
-  const showPct  = 100 - moviePct;
+  const showPct = 100 - moviePct;
 
   return (
     <div className="min-h-screen bg-slate-950 pt-28 pb-24">
@@ -252,14 +286,14 @@ export default function AdminDashboard() {
           <>
             {/* ── Core counters ─────────────────────────────────────────── */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-              <StatCard label="Total Users"    value={stats.totalUsers}        icon={Users}        colorClass="text-blue-400"    bgClass="bg-blue-500/10" />
-              <StatCard label="Active"         value={stats.activeUsers}       icon={UserCheck}    colorClass="text-green-400"   bgClass="bg-green-500/10" />
-              <StatCard label="Suspended"      value={stats.suspendedUsers}    icon={ShieldAlert}  colorClass="text-yellow-400"  bgClass="bg-yellow-500/10" />
-              <StatCard label="Banned"         value={stats.bannedUsers}       icon={UserX}        colorClass="text-red-400"     bgClass="bg-red-500/10" />
-              <StatCard label="Admins"         value={stats.adminCount}        icon={Shield}       colorClass="text-purple-400"  bgClass="bg-purple-500/10" />
-              <StatCard label="Topics"         value={stats.totalTopics}       icon={MessageSquare} colorClass="text-indigo-400" bgClass="bg-indigo-500/10" />
-              <StatCard label="Total Watches"  value={stats.totalWatches}      icon={Eye}          colorClass="text-cyan-400"    bgClass="bg-cyan-500/10" />
-              <StatCard label="New (7d)"       value={stats.newUsersLast7Days} icon={TrendingUp}   colorClass="text-emerald-400" bgClass="bg-emerald-500/10" />
+              <StatCard label="Total Users" value={stats.totalUsers} icon={Users} colorClass="text-blue-400" bgClass="bg-blue-500/10" />
+              <StatCard label="Active" value={stats.activeUsers} icon={UserCheck} colorClass="text-green-400" bgClass="bg-green-500/10" />
+              <StatCard label="Suspended" value={stats.suspendedUsers} icon={ShieldAlert} colorClass="text-yellow-400" bgClass="bg-yellow-500/10" />
+              <StatCard label="Banned" value={stats.bannedUsers} icon={UserX} colorClass="text-red-400" bgClass="bg-red-500/10" />
+              <StatCard label="Admins" value={stats.adminCount} icon={Shield} colorClass="text-purple-400" bgClass="bg-purple-500/10" />
+              <StatCard label="Topics" value={stats.totalTopics} icon={MessageSquare} colorClass="text-indigo-400" bgClass="bg-indigo-500/10" />
+              <StatCard label="Total Watches" value={stats.totalWatches} icon={Eye} colorClass="text-cyan-400" bgClass="bg-cyan-500/10" />
+              <StatCard label="New (7d)" value={stats.newUsersLast7Days} icon={TrendingUp} colorClass="text-emerald-400" bgClass="bg-emerald-500/10" />
             </div>
 
             {/* ── Content type split ────────────────────────────────────── */}
@@ -298,27 +332,19 @@ export default function AdminDashboard() {
                   <Globe className="w-4 h-4 text-gray-400" />
                   <h2 className="text-sm font-semibold text-white uppercase tracking-wide">Community Health</h2>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-3">
-                    <div className="flex justify-between text-sm"><span className="text-gray-400">Active rate</span><span className="text-white font-medium">{stats.totalUsers > 0 ? Math.round((stats.activeUsers / stats.totalUsers) * 100) : 0}%</span></div>
-                    <div className="w-full bg-gray-800 rounded-full h-1.5"><div className="bg-green-500 h-1.5 rounded-full" style={{ width: `${stats.totalUsers > 0 ? (stats.activeUsers / stats.totalUsers) * 100 : 0}%` }} /></div>
-                    <div className="flex justify-between text-sm"><span className="text-gray-400">Moderated</span><span className="text-white font-medium">{stats.suspendedUsers + stats.bannedUsers}</span></div>
-                    <div className="flex justify-between text-sm"><span className="text-gray-400">Replies/topic</span><span className="text-white font-medium">{stats.totalTopics > 0 ? (stats.totalReplies / stats.totalTopics).toFixed(1) : '0'}</span></div>
-                  </div>
-                  <div className="space-y-2">
-                    <button onClick={() => navigate('/admin/community')} className="w-full flex items-center justify-between px-3 py-2.5 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors text-left group text-sm">
-                      <div className="flex items-center gap-2"><Globe className="w-3.5 h-3.5 text-purple-400" /><span className="text-white">Monitor Community</span></div>
-                      <ArrowRight className="w-3.5 h-3.5 text-gray-500 group-hover:text-white" />
-                    </button>
-                    <button onClick={() => navigate('/admin/community?tab=users')} className="w-full flex items-center justify-between px-3 py-2.5 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors text-left group text-sm">
-                      <div className="flex items-center gap-2"><Users className="w-3.5 h-3.5 text-blue-400" /><span className="text-white">Manage Users</span></div>
-                      <ArrowRight className="w-3.5 h-3.5 text-gray-500 group-hover:text-white" />
-                    </button>
-                    <button onClick={() => navigate('/admin/community?tab=add-admin')} className="w-full flex items-center justify-between px-3 py-2.5 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors text-left group text-sm">
-                      <div className="flex items-center gap-2"><Shield className="w-3.5 h-3.5 text-emerald-400" /><span className="text-white">Add Admin</span></div>
-                      <ArrowRight className="w-3.5 h-3.5 text-gray-500 group-hover:text-white" />
-                    </button>
-                  </div>
+                <div className="space-y-2">
+                  <button onClick={() => navigate('/admin/community')} className="w-full flex items-center justify-between px-3 py-2.5 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors text-left group text-sm">
+                    <div className="flex items-center gap-2"><Globe className="w-3.5 h-3.5 text-purple-400" /><span className="text-white">Monitor Community</span></div>
+                    <ArrowRight className="w-3.5 h-3.5 text-gray-500 group-hover:text-white" />
+                  </button>
+                  <button onClick={() => navigate('/admin/community?tab=users')} className="w-full flex items-center justify-between px-3 py-2.5 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors text-left group text-sm">
+                    <div className="flex items-center gap-2"><Users className="w-3.5 h-3.5 text-blue-400" /><span className="text-white">Manage Users</span></div>
+                    <ArrowRight className="w-3.5 h-3.5 text-gray-500 group-hover:text-white" />
+                  </button>
+                  <button onClick={() => navigate('/admin/community?tab=add-admin')} className="w-full flex items-center justify-between px-3 py-2.5 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors text-left group text-sm">
+                    <div className="flex items-center gap-2"><Shield className="w-3.5 h-3.5 text-emerald-400" /><span className="text-white">Add Admin</span></div>
+                    <ArrowRight className="w-3.5 h-3.5 text-gray-500 group-hover:text-white" />
+                  </button>
                 </div>
               </div>
             </div>
@@ -331,11 +357,10 @@ export default function AdminDashboard() {
                   <button
                     key={p.value}
                     onClick={() => setPeriod(p.value)}
-                    className={`text-xs font-medium px-3 py-1.5 rounded-md transition-colors ${
-                      period === p.value
-                        ? 'bg-purple-600 text-white'
-                        : 'text-gray-400 hover:text-white hover:bg-gray-800'
-                    }`}
+                    className={`text-xs font-medium px-3 py-1.5 rounded-md transition-colors ${period === p.value
+                      ? 'bg-purple-600 text-white'
+                      : 'text-gray-400 hover:text-white hover:bg-gray-800'
+                      }`}
                   >
                     {p.label}
                   </button>
@@ -373,7 +398,7 @@ export default function AdminDashboard() {
 
             {/* ── Users by Country ────────────────────────────────────── */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              <SectionCard title="Users by Country" icon={Globe} iconClass="text-cyan-400" empty={!stats.usersByCountry?.length}>
+              <SectionCard title="Users by Country (Profile/IP)" icon={Globe} iconClass="text-cyan-400" empty={!stats.usersByCountry?.length}>
                 {stats.usersByCountry?.slice(0, 10).map((c) => (
                   <BarRow
                     key={c.country}
