@@ -6,6 +6,202 @@ import "./SignUp.css";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const USERNAME_REGEX = /^[a-zA-Z0-9_]+$/;
+const COUNTRY_OPTIONS = [
+  "Afghanistan",
+  "Albania",
+  "Algeria",
+  "Andorra",
+  "Angola",
+  "Antigua and Barbuda",
+  "Argentina",
+  "Armenia",
+  "Australia",
+  "Austria",
+  "Azerbaijan",
+  "Bahamas",
+  "Bahrain",
+  "Bangladesh",
+  "Barbados",
+  "Belarus",
+  "Belgium",
+  "Belize",
+  "Benin",
+  "Bhutan",
+  "Bolivia",
+  "Bosnia and Herzegovina",
+  "Botswana",
+  "Brazil",
+  "Brunei",
+  "Bulgaria",
+  "Burkina Faso",
+  "Burundi",
+  "Cabo Verde",
+  "Cambodia",
+  "Cameroon",
+  "Canada",
+  "Central African Republic",
+  "Chad",
+  "Chile",
+  "China",
+  "Colombia",
+  "Comoros",
+  "Congo",
+  "Costa Rica",
+  "Croatia",
+  "Cuba",
+  "Cyprus",
+  "Czechia",
+  "Democratic Republic of the Congo",
+  "Denmark",
+  "Djibouti",
+  "Dominica",
+  "Dominican Republic",
+  "Ecuador",
+  "Egypt",
+  "El Salvador",
+  "Equatorial Guinea",
+  "Eritrea",
+  "Estonia",
+  "Eswatini",
+  "Ethiopia",
+  "Fiji",
+  "Finland",
+  "France",
+  "Gabon",
+  "Gambia",
+  "Georgia",
+  "Germany",
+  "Ghana",
+  "Greece",
+  "Grenada",
+  "Guatemala",
+  "Guinea",
+  "Guinea-Bissau",
+  "Guyana",
+  "Haiti",
+  "Honduras",
+  "Hungary",
+  "Iceland",
+  "India",
+  "Indonesia",
+  "Iran",
+  "Iraq",
+  "Ireland",
+  "Israel",
+  "Italy",
+  "Jamaica",
+  "Japan",
+  "Jordan",
+  "Kazakhstan",
+  "Kenya",
+  "Kiribati",
+  "Kuwait",
+  "Kyrgyzstan",
+  "Laos",
+  "Latvia",
+  "Lebanon",
+  "Lesotho",
+  "Liberia",
+  "Libya",
+  "Liechtenstein",
+  "Lithuania",
+  "Luxembourg",
+  "Madagascar",
+  "Malawi",
+  "Malaysia",
+  "Maldives",
+  "Mali",
+  "Malta",
+  "Marshall Islands",
+  "Mauritania",
+  "Mauritius",
+  "Mexico",
+  "Micronesia",
+  "Moldova",
+  "Monaco",
+  "Mongolia",
+  "Montenegro",
+  "Morocco",
+  "Mozambique",
+  "Myanmar",
+  "Namibia",
+  "Nauru",
+  "Nepal",
+  "Netherlands",
+  "New Zealand",
+  "Nicaragua",
+  "Niger",
+  "Nigeria",
+  "North Korea",
+  "North Macedonia",
+  "Norway",
+  "Oman",
+  "Pakistan",
+  "Palau",
+  "Palestine",
+  "Panama",
+  "Papua New Guinea",
+  "Paraguay",
+  "Peru",
+  "Philippines",
+  "Poland",
+  "Portugal",
+  "Qatar",
+  "Romania",
+  "Russia",
+  "Rwanda",
+  "Saint Kitts and Nevis",
+  "Saint Lucia",
+  "Saint Vincent and the Grenadines",
+  "Samoa",
+  "San Marino",
+  "Sao Tome and Principe",
+  "Saudi Arabia",
+  "Senegal",
+  "Serbia",
+  "Seychelles",
+  "Sierra Leone",
+  "Singapore",
+  "Slovakia",
+  "Slovenia",
+  "Solomon Islands",
+  "Somalia",
+  "South Korea",
+  "South Africa",
+  "South Sudan",
+  "Spain",
+  "Sri Lanka",
+  "Sudan",
+  "Suriname",
+  "Sweden",
+  "Switzerland",
+  "Syria",
+  "Tajikistan",
+  "Tanzania",
+  "Thailand",
+  "Timor-Leste",
+  "Togo",
+  "Tonga",
+  "Trinidad and Tobago",
+  "Tunisia",
+  "Turkey",
+  "Turkmenistan",
+  "Tuvalu",
+  "Uganda",
+  "Ukraine",
+  "United Kingdom",
+  "United States",
+  "UAE",
+  "Uruguay",
+  "Uzbekistan",
+  "Vanuatu",
+  "Vatican City",
+  "Venezuela",
+  "Vietnam",
+  "Yemen",
+  "Zambia",
+  "Zimbabwe",
+];
 
 function validateEmail(value) {
   if (!value.trim()) return 'Email is required';
@@ -32,8 +228,11 @@ export default function SignUp({ onClose }) {
 
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
+  const [country, setCountry] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [isCountryOpen, setIsCountryOpen] = useState(false);
+  const [countryTouched, setCountryTouched] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -47,10 +246,24 @@ export default function SignUp({ onClose }) {
   const [touched, setTouched] = useState({ email: false, password: false, confirmPassword: false });
   const googleButtonRef = useRef(null);
   const usernameRef = useRef("");
+  const countryDropdownRef = useRef(null);
 
   useEffect(() => {
     usernameRef.current = username;
   }, [username]);
+
+  useEffect(() => {
+    const handleOutsideClick = (event) => {
+      if (!countryDropdownRef.current?.contains(event.target)) {
+        setIsCountryOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+    };
+  }, []);
 
   // Check username availability when user types
   useEffect(() => {
@@ -109,6 +322,7 @@ export default function SignUp({ onClose }) {
     usernameAvailable === true &&
     email.trim() &&
     !validateEmail(email) &&
+    country.trim() &&
     password.trim() &&
     !validatePassword(password) &&
     confirmPassword.trim() &&
@@ -149,6 +363,12 @@ export default function SignUp({ onClose }) {
       return;
     }
 
+    if (!country.trim()) {
+      setCountryTouched(true);
+      setError("Please select your country");
+      return;
+    }
+
     if (eErr || pErr || cErr) return;
 
     // Handle signup with API call
@@ -158,6 +378,7 @@ export default function SignUp({ onClose }) {
         username: username.trim(),
         email,
         password,
+        country: country.trim() || null,
       });
 
       if (result.success) {
@@ -169,6 +390,9 @@ export default function SignUp({ onClose }) {
         // Reset Form
         setUsername("");
         setEmail("");
+        setCountry("");
+        setIsCountryOpen(false);
+        setCountryTouched(false);
         setPassword("");
         setConfirmPassword("");
         setUsernameAvailable(null);
@@ -224,14 +448,25 @@ export default function SignUp({ onClose }) {
               const result = await authService.googleAuth({
                 idToken: response.credential,
                 preferredUsername,
+                country: country.trim() || undefined,
               });
 
               if (result.success) {
                 userStorage.setUser(result.data);
-                setSuccess("Google account connected successfully!");
-                setTimeout(() => {
-                  navigate("/");
-                }, 500);
+
+                if ((result.data?.country || "").trim()) {
+                  setSuccess("Google account connected successfully!");
+                  setTimeout(() => {
+                    navigate("/");
+                  }, 500);
+                } else {
+                  localStorage.setItem("googleCountryPendingUser", JSON.stringify(result.data));
+                  navigate("/onboarding/country", {
+                    state: {
+                      suggestedCountry: country.trim() || "",
+                    },
+                  });
+                }
               } else {
                 console.error("Google signup failed:", result.error?.raw || result.error);
                 setError(result.error?.message || "Google signup failed. Please try again.");
@@ -326,6 +561,51 @@ export default function SignUp({ onClose }) {
                 }}
               />
               {touched.email && emailError && <span className="field-error">{emailError}</span>}
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="country" className="form-label">
+                Country
+              </label>
+              <div className="country-select-wrapper" ref={countryDropdownRef}>
+                <button
+                  type="button"
+                  id="country"
+                  className={`country-select-trigger${countryTouched && !country ? " country-select-error" : ""}`}
+                  onClick={() => setIsCountryOpen((open) => !open)}
+                  aria-haspopup="listbox"
+                  aria-expanded={isCountryOpen}
+                  onBlur={() => setCountryTouched(true)}
+                >
+                  <span className={country ? "country-select-value" : "country-select-placeholder"}>
+                    {country || "Select your country"}
+                  </span>
+                  <span className={`country-select-arrow${isCountryOpen ? " open" : ""}`}>v</span>
+                </button>
+
+                {isCountryOpen && (
+                  <ul className="country-dropdown-menu" role="listbox" aria-label="Country options">
+                    {COUNTRY_OPTIONS.map((c) => (
+                      <li key={c} role="option" aria-selected={country === c}>
+                        <button
+                          type="button"
+                          className={`country-dropdown-option${country === c ? " selected" : ""}`}
+                          onClick={() => {
+                            setCountry(c);
+                            setCountryTouched(true);
+                            setIsCountryOpen(false);
+                          }}
+                        >
+                          {c}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+              {countryTouched && !country && (
+                <span className="field-error">Please select your country</span>
+              )}
             </div>
 
             <div className="form-group">

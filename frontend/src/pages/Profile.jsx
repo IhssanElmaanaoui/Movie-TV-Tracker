@@ -66,6 +66,7 @@ export default function Profile() {
     const [formData, setFormData] = useState({
         username: "",
         email: "",
+        country: "",
         bio: "",
         currentPassword: "",
         newPassword: "",
@@ -90,6 +91,7 @@ export default function Profile() {
         setFormData({
             username: currentUser.username || "",
             email: currentUser.email || "",
+            country: currentUser.country || "",
             bio: currentUser.bio || "",
             currentPassword: "",
             newPassword: "",
@@ -579,6 +581,10 @@ export default function Profile() {
             newErrors.email = "Email is invalid";
         }
 
+        if (formData.country && formData.country.trim().length > 100) {
+            newErrors.country = "Country must not exceed 100 characters";
+        }
+
         // If changing password
         if (formData.newPassword) {
             if (!formData.currentPassword) {
@@ -610,6 +616,7 @@ export default function Profile() {
             const profileUpdateData = {
                 username: formData.username,
                 email: formData.email,
+                country: formData.country || null,
                 bio: formData.bio || "",
                 profilePictureUrl: previewImage || null,
             };
@@ -858,6 +865,7 @@ export default function Profile() {
                                                 setFormData({
                                                     username: user.username || "",
                                                     email: user.email || "",
+                                                    country: user.country || "",
                                                     bio: user.bio || "",
                                                     currentPassword: "",
                                                     newPassword: "",
@@ -1023,6 +1031,23 @@ export default function Profile() {
                                                 />
                                             </div>
 
+                                            {/* Country Field */}
+                                            <div>
+                                                <label className="text-xs font-bold text-gray-400 mb-2 block uppercase tracking-wider">
+                                                    Country
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    name="country"
+                                                    value={formData.country}
+                                                    onChange={handleInputChange}
+                                                    maxLength={100}
+                                                    placeholder="e.g. Algeria"
+                                                    className={`w-full px-4 py-3 bg-gray-800 border ${errors.country ? 'border-red-500 focus:border-red-500' : 'border-gray-700 focus:border-purple-600'} text-white placeholder-gray-500 focus:outline-none transition-colors`}
+                                                />
+                                                {errors.country && <p className="text-red-400 text-sm mt-1">{errors.country}</p>}
+                                            </div>
+
                                             {/* Password Change Section */}
                                             <div className="border-t border-gray-700 pt-6 mt-6">
                                                 <h3 className="flex items-center gap-2 text-lg font-bold text-white mb-4">
@@ -1099,6 +1124,10 @@ export default function Profile() {
                                                         <span className="text-white">
                                                             {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "N/A"}
                                                         </span>
+                                                    </div>
+                                                    <div className="flex justify-between items-center p-3 bg-gray-800/30 rounded-lg">
+                                                        <span className="text-gray-400">Country:</span>
+                                                        <span className="text-white">{user.country || "Unknown"}</span>
                                                     </div>
                                                     <div className="flex justify-between items-center p-3 bg-gray-800/30 rounded-lg">
                                                         <span className="text-gray-400">Account Status:</span>
